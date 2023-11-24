@@ -65,7 +65,7 @@ trait Common {
 
   /**
    * A LisaObject is the type for formulas, terms, lambdas. A child of LisaObject is supposed to be parametrized by itself.
-   * It key property is to define substitution and computation of free scematic symbols.
+   * Its' key property is to define substitution and computation of free schematic symbols.
    * The type T denotes the type that the object is guaranteed to keep after a substitution.
    * For example, Term <: LisaObject[Term], because a term with some substitution is still a term.
    * Similarly, Variable <: LisaObject[Term] because a variable is a term and still is after any substitution.
