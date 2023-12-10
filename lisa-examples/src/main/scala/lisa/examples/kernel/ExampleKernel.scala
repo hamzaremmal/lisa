@@ -1,6 +1,7 @@
-import lisa.utils.K
+package lisa.examples.kernel
 
-import K.*
+import lisa.utils.K
+import lisa.utils.K.*
 
 /**
  * Discover some of the elements of the logical kernel of LISA.

@@ -1,4 +1,7 @@
-import lisa.automation.Substitution.{ApplyRules as Substitute}
+package lisa.examples.sets
+
+import lisa.automation.Substitution.ApplyRules as Substitute
+import lisa.examples.sets.Example.{assume, have, thenHave, thesis, ∀}
 
 object Example extends lisa.Main {
 
