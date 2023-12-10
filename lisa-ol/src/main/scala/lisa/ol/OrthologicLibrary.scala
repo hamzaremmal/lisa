@@ -42,7 +42,7 @@ object OrthologicLibrary extends lisa.prooflib.Library {
   // =============================== AXIMATISATION OF ORTHOLOGIC ==================================
   // ==============================================================================================
 
-  private val (x, y, z) = (variable, variable, variable)
+  private val (x, y, z) = (Variable("x"), Variable("y"), Variable("z"))
 
   // See 'Orthologic with Axioms' by S. GUILLOUD and V. KUNCAK
   val P1 = Axiom(x <= y);
