@@ -3,7 +3,11 @@ package lisa.ol
 import lisa.fol.FOL.{*, given}
 import lisa.kernel.proof.RunningTheory
 
-object OrthologicLibrary extends lisa.prooflib.Library {
+/**
+ * ???
+ * @author Hamza REMMAL (hamza.remmal@epfl.ch)
+ */
+trait OrthologicLibrary extends lisa.prooflib.Library {
 
   final val theory: RunningTheory = new RunningTheory()
 
@@ -25,11 +29,11 @@ object OrthologicLibrary extends lisa.prooflib.Library {
   // ==============================================================================================
 
   extension (left: Term) {
-    infix def <=(right: Term): Formula = leq(left, right)
-    infix def ===(right: Term): Formula = eqq(left, right)
-    infix def u(right: Term): Term = join(left, right)
-    infix def n(right: Term): Term = meet(left, right)
-    def unary_! : Term = neg(left)
+    infix inline def <=(right: Term): Formula = leq(left, right)
+    infix inline def ===(right: Term): Formula = eqq(left, right)
+    infix inline def u(right: Term): Term = join(left, right)
+    infix inline def n(right: Term): Term = meet(left, right)
+    inline def unary_! : Term = neg(left)
   }
 
   given zero2term: Conversion[0, Term] with

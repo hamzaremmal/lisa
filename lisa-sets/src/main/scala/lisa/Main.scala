@@ -6,10 +6,9 @@ import lisa.prooflib.BasicMain
 /**
  * The parent trait of all theory files containing mathematical development
  */
-trait Main extends BasicMain {
+trait Main extends BasicMain with SetTheoryLibrary {
 
   export lisa.fol.FOL.{*, given}
-  export SetTheoryLibrary.{given, _}
   export lisa.prooflib.BasicStepTactic.*
   export lisa.prooflib.SimpleDeducedSteps.*
 

@@ -3,7 +3,7 @@ package lisa.prooflib
 import lisa.utils.Serialization.*
 
 trait BasicMain {
-  val library: Library
+  library: Library =>
 
   private val realOutput: String => Unit = println
 

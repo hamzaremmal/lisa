@@ -1,22 +1,19 @@
-package lisa.automation
+package lisa.ol.automation
+
 import lisa.fol.FOL as F
-import lisa.kernel.proof.RunningTheory
-import lisa.kernel.proof.SCProof
-import lisa.kernel.proof.SequentCalculus
-import lisa.prooflib.BasicStepTactic.*
-import lisa.prooflib.ProofTacticLib.{_, given}
+import lisa.fol.FOL.*
+import lisa.fol.FOLHelpers.given
+import lisa.kernel.proof.{RunningTheory, SCProof, SequentCalculus}
 import lisa.prooflib.*
-import lisa.utils.FOLPrinter
-import lisa.utils.K
+import lisa.prooflib.BasicStepTactic.*
+import lisa.prooflib.ProofTacticLib.{*, given}
+import lisa.utils.{FOLPrinter, K}
 import lisa.utils.parsing.FOLPrinter
 import lisa.utils.unification.UnificationUtils
 import lisa.utils.unification.UnificationUtils.getContextFormulaSet
 
 import scala.annotation.nowarn
 import scala.collection.mutable.Map as MMap
-
-import F.{*, given}
-import F.|-
 
 object Substitution {
   def validRule(using lib: lisa.prooflib.Library, proof: lib.Proof)(r: (proof.Fact | F.Formula | lib.JUSTIFICATION)): Boolean =
