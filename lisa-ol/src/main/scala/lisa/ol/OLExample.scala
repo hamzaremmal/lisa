@@ -1,6 +1,7 @@
 package lisa.ol
 
 import lisa.fol.FOLHelpers.variable
+import lisa.fol.FOL.|-
 
 object OLExample extends lisa.ol.Main:
 
@@ -11,11 +12,13 @@ object OLExample extends lisa.ol.Main:
   val q = variable
   val u = variable
 
+  val axiom = Axiom((x n (!x u u)) === 1)
+
   // ==============================================================================================
   // ===================================== AXIOM CHECKING ========================================
   // ==============================================================================================
 
-  val reflexitivity = Theorem(x <= x) {
+  /*val reflexitivity = Theorem(x <= x) {
     have(thesis) by Tautology.from(P1 of (y := x))
   }
 
@@ -37,4 +40,13 @@ object OLExample extends lisa.ol.Main:
 
   val section_1_2_with_axiom = Theorem((x n (!x u u)) <= u) {
     sorry
+  }
+
+  // ==============================================================================================
+  // ==================================== TEST AXIOM TACTIC =======================================
+  // ==============================================================================================
+
+   */
+  val check_axiom = Theorem(() |- ((x n (!x u u)) === 1)) {
+    have(thesis) by Axiom
   }
