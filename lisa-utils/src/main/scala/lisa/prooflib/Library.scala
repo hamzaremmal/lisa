@@ -18,8 +18,8 @@ import scala.collection.mutable.Stack as stack
 abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.ProofsHelpers {
 
   val theory: RunningTheory
-  given library: this.type = this
-  given RunningTheory = theory
+  final given library: this.type = this
+  final given RunningTheory = theory
 
   export lisa.kernel.proof.SCProof
 

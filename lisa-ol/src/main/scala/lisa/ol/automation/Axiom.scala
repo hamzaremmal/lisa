@@ -12,7 +12,12 @@ object Axiom extends ProofTactic with ProofSequentTactic {
     val pivot = botK.left.union(botK.right)
     lib.theory.getAxiom(pivot.head) match
       case Some(axiom) =>
-        proof.ValidProofTactic(bot, Seq(), Seq(lib.AXIOM(axiom, bot.right.head, axiom.name)))
+        // TODO HR : Add REstate and weakening
+        proof.ValidProofTactic(
+          bot,
+          Seq(),
+          Seq(lib.AXIOM(axiom, bot.right.head, axiom.name))
+        )
       case None => proof.InvalidProofTactic("The desired formula is not an axiom of the theory")
 
 }

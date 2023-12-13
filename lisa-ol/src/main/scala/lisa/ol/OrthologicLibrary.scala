@@ -7,7 +7,7 @@ import lisa.kernel.proof.RunningTheory
  * ???
  * @author Hamza REMMAL (hamza.remmal@epfl.ch)
  */
-trait OrthologicLibrary extends lisa.prooflib.Library {
+trait OrthologicLibrary extends lisa.prooflib.Library with OLProofHelpers {
 
   final val theory: RunningTheory = new RunningTheory()
 
@@ -68,5 +68,10 @@ trait OrthologicLibrary extends lisa.prooflib.Library {
   val antisymmetry = Axiom((x <= y) /\ (y <= x) <=> (x === y))
   val lub = Axiom(((x <= z) /\ (y <= z)) <=> ((x u y) <= z))
   val glb = Axiom(((z <= x) /\ (z <= y)) <=> (z <= (x n y)))
+
+  // TODO HR : Define special formula called labelled formula
+
+  // TODO HR : Define sequent from <= operator
+  // TODO Question : Does the |- has a meaning in that context or can we replace it with the <= operator ?
 
 }
