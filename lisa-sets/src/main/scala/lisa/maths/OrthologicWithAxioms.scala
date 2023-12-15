@@ -38,6 +38,7 @@ object OrthologicWithAxioms extends lisa.Main:
   val interpretation = Axiom((T2F(x) ==> T2F(y)) <=> (x <= y))
 
 
+
   /** AXIOMS */
 
   val p1 = Axiom(x <= x)
