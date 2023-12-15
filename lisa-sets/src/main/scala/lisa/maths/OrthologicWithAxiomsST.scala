@@ -5,7 +5,7 @@ import lisa.prooflib.ProofTacticLib.ProofTactic
 import lisa.fol.FOL as F
 import lisa.prooflib.Library
 
-object OrthologicWithAxioms extends lisa.Main:
+object OrthologicWithAxiomsST extends lisa.Main:
 
   private val o = variable
 
@@ -18,11 +18,11 @@ object OrthologicWithAxioms extends lisa.Main:
   val x, y, z = variable
 
 
-  def neg2(t: Term): Term = app(OrthologicWithAxioms.neg2, x)
+  def neg2(t: Term): Term = app(OrthologicWithAxiomsST.neg2, x)
   extension (left: Term)
-    def leq(right: Term): Formula = in(pair(left, right), OrthologicWithAxioms.leq)
-    def meet(right: Term): Term = app(OrthologicWithAxioms.meet, pair(left, right))
-    def join(right: Term): Term = app(OrthologicWithAxioms.join, pair(left, right))
+    def leq(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsST.leq)
+    def meet(right: Term): Term = app(OrthologicWithAxiomsST.meet, pair(left, right))
+    def join(right: Term): Term = app(OrthologicWithAxiomsST.join, pair(left, right))
 
 
   // TODO everywhere: x,y in S
@@ -91,9 +91,12 @@ object OrthologicWithAxioms extends lisa.Main:
              (o: Term, isOrtholattice: proof.Fact)
              (axioms: Set[?])
              (bot: Sequent): proof.ProofTacticJudgement =
+      given lisa.SetTheoryLibrary.type = lisa.SetTheoryLibrary
 
       val isOrtholatticeSeq = proof.getSequent(isOrtholattice)
       val isOrtholatticeFormula: Formula = orthollatice2(o)
+
+      val leq: Term = ??? // get leq from o
 
       if !F.contains(isOrtholatticeSeq.right, isOrtholatticeFormula) then
         proof.InvalidProofTactic(s"TODO") // TODO
@@ -101,14 +104,24 @@ object OrthologicWithAxioms extends lisa.Main:
       else if bot.left.nonEmpty || bot.right.size != 1 then
         proof.InvalidProofTactic("Can only be applied to solve goals of the form TODO") // TODO
 
-      else TacticSubproof: // AR how this works
+      else TacticSubproof: // REVIEW what this does exactly
         val goal: F.Formula = bot.right.head
 
-        goal match
-          case AppliedPredicate(label, args) => ???
-
+        val (left: Term, right: Term) = goal match
+          case AppliedPredicate(`in`, Seq(hopefullyPair, `leq`)) =>
+            hopefullyPair match
+              case AppliedPredicate(`unorderedPair`, Seq(
+                AppliedPredicate(`unorderedPair`, Seq(a11, a12)),
+                AppliedPredicate(`unorderedPair`, Seq(a21, a22))
+              )) => // FIX we are clearly using the odering from the implementation of pair here
+                if !(a21 == a22) then proof.InvalidProofTactic("???")
+                else a21 match
+                  case `a11` => (a12, a21)
+                  case `a12` => (a11, a21)
         ???
+    end solve
 
   end RestateWithAxioms
 
-end OrthologicWithAxioms
+end OrthologicWithAxiomsST
+
