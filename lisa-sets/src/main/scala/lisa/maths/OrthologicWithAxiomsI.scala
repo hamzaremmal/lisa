@@ -1,7 +1,6 @@
 package lisa.maths
 
 import collection.mutable.Map as mMap
-import lisa.fol.FOL as F
 import lisa.kernel.proof.SequentCalculus.SCProofStep
 import lisa.prooflib.Library
 import lisa.prooflib.ProofTacticLib.ProofTactic
@@ -79,13 +78,14 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
   /** ORTHOLOGIC SEQUENT ENCODING */
 
+  val F = ConstantFunctionLabel("F2", 1) // ASK
   val L = ConstantFunctionLabel("L", 1)
   val R = ConstantFunctionLabel("R", 1)
   val N = Constant("N")
 
   val S = ConstantPredicateLabel("S", 2)
 
-  Set(L, R, N, S) foreach addSymbol
+  Set(F, L, R, N, S) foreach addSymbol
 
 
   // annotated formulas
@@ -101,32 +101,30 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
   // ASK ok ?
   val i0 = Axiom(S(gamma, delta) <=> S(delta, gamma))
-//  val i7 = Axiom(S(gamma, delta) ==> gamma.isF /\ delta.isF)
-  val i7 = Axiom(S(gamma, delta) ==> ∃(x, gamma.isF(x)) /\ ∃(x, delta.isF(x)))
+  val i7 = Axiom(S(F(x), delta) <=> S(L(x), delta) \/ S(R(x), delta) \/ S(N, delta))
+
+
+  val i7b = Lemma(S(gamma, F(x)) <=> S(gamma, L(x)) \/ S(gamma, R(x)) \/ S(gamma, N)) {
+    have(thesis) by Tautology.from(
+      i0 of (delta := F(x)),
+      i7 of (delta := gamma),
+      i0 of (delta := L(x)), i0 of (delta := R(x)), i0 of (delta := N)
+    )
+  }
 
 
   extension (t: Term)
-//    def isL(x: Term): Formula = (t === L(x)) /\ !(t === R(x)) /\ !(t === N)
-//    def isR(x: Term): Formula = (t === R(x)) /\ !(t === L(x)) /\ !(t === N)
-//    def isN(x: Term): Formula = (t === N) /\ !(t === L(x)) /\ !(t === R(x))
     def isL(x: Term): Formula = t === L(x)
     def isR(x: Term): Formula = t === R(x)
-    def isN(x: Term): Formula = t === N // AR (x)
+    def isN: Formula = t === N
     def isF(x: Term): Formula = isL(x) \/ isR(x) \/ isN(x)
+
+    def isN(x: Term): Formula = isN // RM
   end extension
 
-  def S2(t1: Term, t2: Term) =
-//    t1.isF /\ t2.isF /\ (S(t1, t2) \/ S(t2, t1))
-//    t1.isF /\ t2.isF /\ S(t1, t2)
-    S(t1, t2)
+  def S2(t1: Term, t2: Term) = S(t1, t2) // RM
   def S1(t: Term): Formula = S2(t, N)
   def S0() = S2(N, N)
-
-
-  // ASK !!
-  val onlyL = Axiom(gamma.isL(x) ==> !gamma.isR(x) /\ !gamma.isN(x))
-  val onlyR = Axiom(gamma.isR(x) ==> !gamma.isR(x) /\ !gamma.isN(x))
-  val onlyN = Axiom(gamma.isN(x) ==> !gamma.isL(x) /\ !gamma.isR(x))
 
 
   val S1L = Lemma(S1(L(x)) <=> S2(L(x), R(zero))) {
@@ -172,102 +170,17 @@ object OrthologicWithAxiomsI extends lisa.Main:
     have(thesis) by Tautology.from(caseL, caseR, caseN)
   }
 
-  val deltaCases2 = Theorem(delta.isF(y) |- S(L(x), delta) <=>
-    ((delta.isL(y) ==> (x <= not(y))) /\ (delta.isR(y) ==> (x <= y)) /\ (delta.isN(y) ==> (x <= zero)))
-  ) {
 
-    val caseL = have(thesis +<< delta.isL(y)) subproof {
-      assume(delta.isL(y))
-      val s1 = have(!delta.isR(y) /\ !delta.isN(y)) by Tautology.from(onlyL of (gamma := delta, x := y))
-      val s2 = have(S(L(x), delta) <=> (x <= not(y))) by Substitution.ApplyRules(delta.isL(y))(i2)
-      have(thesis) by Tautology.from(s1, s2)
-    }
+  val isFEq = Theorem(gamma.isF(x) /\ S(gamma, delta) |- S(F(x), delta)) {
+    val a1 = assume(S(gamma, delta))
 
-    val caseR = have(thesis +<< delta.isR(y)) subproof {
-      assume(delta.isR(y))
-      val s1 = have(!delta.isL(y) /\ !delta.isN(y)) by Tautology.from(onlyR of (gamma := delta, x := y))
-      val s2 = have(S(L(x), delta) <=> (x <= y)) by Substitution.ApplyRules(delta.isR(y))(i1)
-      have(thesis) by Tautology.from(s1, s2)
-    }
+    val caseL = have(gamma.isL(x) |- S(L(x), delta)) by Substitution.ApplyRules(gamma.isL(x))(a1)
+    val caseR = have(gamma.isR(x) |- S(R(x), delta)) by Substitution.ApplyRules(gamma.isR(x))(a1)
+    val caseN = have(gamma.isN |- S(N, delta)) by Substitution.ApplyRules(gamma.isN)(a1)
 
-    val caseN = have(thesis +<< delta.isN(y)) subproof {
-      assume(delta.isN(y))
-      val s1 = have(!delta.isL(y) /\ !delta.isR(y)) by Tautology.from(onlyN of (gamma := delta, x := y))
-      val s2 = have(S(L(x), delta) <=> (x <= zero)) by Substitution.ApplyRules(delta.isN(y))(i4)
-      have(thesis) by Tautology.from(s1, s2)
-    }
-
-    have(thesis) by Tautology.from(caseL, caseR, caseN)
+    have(thesis) by Tautology.from(caseL, caseR, caseN, i7)
   }
 
-  val gammaCases2 = Theorem(gamma.isF(y) |- S(gamma, R(x)) <=>
-    ((gamma.isL(y) ==> (y <= x)) /\ (gamma.isR(y) ==> (not(y) <= x)) /\ (gamma.isN(y) ==> (one <= x)))
-  ) {
-    sorry
-  }
-
-//  val allCases = Theorem(gamma.isF(y) /\ delta.isF(y) |- S(gamma, delta) <=> (
-//    (gamma.isL(y) ==> (y <= x)) /\
-//    (gamma.isR(y) ==> (not(y) <= x)) /\
-//    (gamma.isN(y) ==> (one <= x))
-//  )) {
-//    sorry
-//  }
-
-
-  val lemma1 = Lemma(S2(gamma, R(y)) |-
-    ((gamma === L(x)) ==> (x <= y)) /\
-      ((gamma === R(x)) ==> (not(x) <= y))
-  ) {
-    //    have(S2(L(x), R(y)) ==> (x <= y)) by Tautology.from(i1)
-    //    thenHave(gamma === L(x) |- S2(gamma, R(y)) ==> (x <= y)) by Substitution.ApplyRules(gamma === L(x))
-    //    val s1 = thenHave(S2(gamma, R(y)) |- (gamma === L(x)) ==> (x <= y)) by Restate
-    //
-    //    have(S2(R(x), R(y)) ==> (not(x) <= y)) by Tautology.from(i3)
-    //    thenHave(gamma === R(x) |- S2(gamma, R(y)) ==> (not(x) <= y)) by Substitution.ApplyRules(gamma === R(x))
-    //    val s2 = thenHave(S2(gamma, R(y)) |- (gamma === R(x)) ==> (not(x) <= y)) by Restate
-    //
-    //    have(thesis) by Tautology.from(s1, s2)
-    sorry
-  }
-
-  val lemma3 = Lemma(S2(L(zero), delta)) {
-    sorry
-  }
-
-  val lemma4 = Lemma(S2(gamma, R(one))) {
-    sorry
-  }
-
-  val lemma2 = Lemma(S1(gamma) |-
-    ((gamma === L(x)) ==> (x <= zero)) /\
-      ((gamma === R(x)) ==> (one <= x))
-  ) {
-    //    val s1 = have(one <= not(zero)) by Tautology.from(
-    //      p3a of (x := not(one)), // zero <= not(one)
-    //      notEquiv of (x := zero, y := one)
-    //    )
-    //    have(thesis) by Tautology.from(
-    //      s1,
-    //      lemma1 of (y := zero),
-    //      p2 of (x := one, y := not(zero), z := x)
-    //    )
-
-    //    have(S1(L(x)) ==> (x <= zero)) by Tautology.from(i4)
-    //    thenHave(gamma === L(x) |- S1(gamma) ==> (x <= zero)) by Substitution.ApplyRules(gamma === L(x))
-    //    val s1 = thenHave(S1(gamma) |- (gamma === L(x)) ==> (x <= zero)) by Restate
-    //
-    //    have(S1(R(x)) ==> (one <= x)) by Tautology.from(i5)
-    //    thenHave(gamma === R(x) |- S1(gamma) ==> (one <= x)) by Substitution.ApplyRules(gamma === R(x))
-    //    val s2 = thenHave(S1(gamma) |- (gamma === R(x)) ==> (one <= x)) by Restate
-    //
-    //    have(thesis) by Tautology.from(s1, s2)
-    sorry
-  }
-
-  val lemma5 = Lemma(S1(gamma) <=> S2(gamma, R(one))) {
-    sorry
-  }
 
 
   /** DERIVATION RULES */
@@ -309,9 +222,9 @@ object OrthologicWithAxiomsI extends lisa.Main:
     have(gamma.isF(y) /\ delta.isF(z) |- S(gamma, delta)) subproof {
       assume(gamma.isF(y) /\ delta.isF(z))
 
-      val s1 = have((gamma.isL(y) ==> (y <= x)) /\ (gamma.isR(y) ==> (not(y) <= x)) /\ (gamma.isN(y) ==> (one <= x))) by Tautology.from(gammaCases2)
-
-      val s2 = have((delta.isL(y) ==> (x <= not(y))) /\ (delta.isR(y) ==> (x <= y)) /\ (delta.isN(y) ==> (x <= zero))) by Tautology.from(deltaCases2)
+//      val s1 = have((gamma.isL(y) ==> (y <= x)) /\ (gamma.isR(y) ==> (not(y) <= x)) /\ (gamma.isN(y) ==> (one <= x))) by Tautology.from(gammaCases2)
+//
+//      val s2 = have((delta.isL(y) ==> (x <= not(y))) /\ (delta.isR(y) ==> (x <= y)) /\ (delta.isN(y) ==> (x <= zero))) by Tautology.from(deltaCases2)
 
 
       sorry
@@ -353,30 +266,83 @@ object OrthologicWithAxiomsI extends lisa.Main:
     sorry
   }
 
-  val leftAnd = Theorem(S(L(x), delta) |- S(L(x n y), delta)) {
-    assume(S(L(x), delta))
-    
-    val p2And = p2 of (x := (x n y), y := x)
+  val leftAnd = Theorem(S(L(x), F(z)) |- S(L(x n y), F(z))) {
+    val s1 = have(x <= z |- (x n y) <= z) by Tautology.from(p4a, p2 of (x := (x n y), y := x))
 
-    val s1 = have(x <= not(z) |- (x n y) <= not(z)) by Tautology.from(p4a, p2And of (z := not(z)))
-    val s2 = have(x <= z |- (x n y) <= z) by Tautology.from(p4a, p2And)
-    val s3 = have(x <= zero |- (x n y) <= zero) by Tautology.from(p4a, p2And of (z := zero))
-
-    have(∃(z, delta.isF(z))) by Tautology.from(i7)
-    
-    assume(delta.isF(z))
-    have(S(L(x), delta) |- S(L(x n y), delta)) by Tautology.from(
-      deltaCases2 of (y := z),
-      deltaCases2 of (x := (x n y), y := z),
-      s1, s2, s3
+    val caseL = have(S(L(x), L(z)) |- S(L(x n y), L(z))) by Tautology.from(
+      i2 of (y := z), s1 of (z := not(z)), i2 of (x := (x n y), y := z)
+    )
+    val caseR = have(S(L(x), R(z)) |- S(L(x n y), R(z))) by Tautology.from(
+      i1 of (y := z), s1, i1 of (x := (x n y), y := z)
+    )
+    val caseN = have(S(L(x), N) |- S(L(x n y), N)) by Tautology.from(
+      i4, s1 of (z := zero), i4 of (x := (x n y))
     )
 
-    sorry
+    have(thesis) by Tautology.from(
+      i7b of (gamma := L(x), x := z),
+      caseL, caseR, caseN,
+      i7b of (gamma := L(x n y), x := z)
+    )
   }
 
-  val leftOr = Theorem(S2(gamma, L(x)) /\ S2(gamma, L(y)) |- S2(gamma, L(x u y))) {
-    sorry
+  val leftOr = Theorem((delta === F(z)) /\ S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), F(z))) {
+    assume(S(L(x), delta) /\ S(L(y), delta))
+
+//    val caseL = have(S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
+//      i2 of (y := z), i2 of (x := y, y := z),
+//      p6b of (z := not(z)),
+//      i2 of (x := (x u y), y := z)
+//    )
+//    val caseR = have(S(L(x), R(z)) /\ S(L(y), R(z)) |- S(L(x u y), R(z))) by Tautology.from(
+//      i1 of (y := z), i1 of (x := y, y := z),
+//      p6b,
+//      i1 of (x := (x u y), y := z)
+//    )
+//    val caseN = have(S(L(x), N) /\ S(L(y), N) |- S(L(x u y), N)) by Tautology.from(
+//      i4 of (y := z), i4 of (x := y, y := z),
+//      p6b of (z := zero),
+//      i4 of (x := (x u y), y := z)
+//    )
+
+    have(thesis) by Tautology.from(
+      i7b of (gamma := L(x), x := z), i7b of (gamma := L(y), x := z),
+//      caseL, caseR, caseN,
+      i7b of (gamma := L(x u y), x := z)
+    )
   }
+
+  /*val leftOr = Theorem(gamma.isF(z) /\ S(L(x), gamma) /\ S(L(y), gamma) |- S(L(x u y), gamma) {
+    assume(S(L(x), gamma) /\ S(L(y), gamma))
+//    val caseL = have(S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
+//      i2 of (y := z), i2 of (x := y, y := z),
+//      p6b of (z := not(z)),
+//      i2 of (x := (x u y), y := z)
+//    )
+//    val caseR = have(S(L(x), R(z)) /\ S(L(y), R(z)) |- S(L(x u y), R(z))) by Tautology.from(
+//      i1 of (y := z), i1 of (x := y, y := z),
+//      p6b,
+//      i1 of (x := (x u y), y := z)
+//    )
+//    val caseN = have(S(L(x), N) /\ S(L(y), N) |- S(L(x u y), N)) by Tautology.from(
+//      i4 of (y := z), i4 of (x := y, y := z),
+//      p6b of (z := zero),
+//      i4 of (x := (x u y), y := z)
+//    )
+
+    val caseL = have(gamma.isF(z) |- )
+      have(S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
+      i2 of (y := z), i2 of(x := y, y := z),
+      p6b of (z := not(z)),
+      i2 of(x := (x u y), y := z)
+    )
+
+    have(thesis) by Tautology.from(
+      i7b of (gamma := L(x), x := z), i7b of (gamma := L(y), x := z),
+//      caseL, caseR, caseN,
+      i7b of (gamma := L(x u y), x := z)
+    )
+  }*/
 
   val leftNot = Theorem(S2(gamma, R(x)) |- S(gamma, L(not(x)))) {
     sorry
@@ -391,7 +357,7 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
     def apply(using lib: library.type, proof: lib.Proof)
              (axioms: Set[?])
-             (bot: F.Sequent): proof.ProofTacticJudgement = ???
+             (bot: Sequent): proof.ProofTacticJudgement = ???
 
     /**
      * Produce proof of () |- left <= right
