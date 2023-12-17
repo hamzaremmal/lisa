@@ -24,6 +24,7 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
   Set(<=, u, n, not, zero, one) foreach addSymbol
 
+
   extension (left: Term) // FIX
 //    def <=(right: Term): Formula = OrthologicWithAxioms.<=(left, right)
 //    def u(right: Term): Term = OrthologicWithAxioms.u(left, right)
@@ -31,8 +32,6 @@ object OrthologicWithAxiomsI extends lisa.Main:
     def <=(right: Term): Formula = AppliedPredicate(OrthologicWithAxioms.<=, Seq(left, right))
     def u(right: Term): Term = AppliedFunction(OrthologicWithAxioms.u, Seq(left, right))
     def n(right: Term): Term = AppliedFunction(OrthologicWithAxioms.n, Seq(left, right))
-
-  def not(right: Term): Term = AppliedFunction(OrthologicWithAxioms.not, Seq(right))
 
 
   /** ORTHOLATTICE AXIOMS */
@@ -55,14 +54,12 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
 
   val notEquiv = Theorem((x <= not(y)) <=> (y <= not(x))) {
-    val dir1 = have((x <= not(y)) ==> (y <= not(x))) subproof {
-      have(thesis) by Tautology.from(
-        p8 of (y := not(y)), // (x <= not(y)) ==> (not(not(y)) <= not(x))
-        p7a of (x := y), // y <= not(not(y))
-        p2 of(x := y, y := not(not(y)), z := not(x))
-      )
-    }
-    have(thesis) by Tautology.from(dir1, dir1 of(x := y, y := x))
+    val s1 = have((x <= not(y)) ==> (y <= not(x))) by Tautology.from(
+      p8 of (y := not(y)), // (x <= not(y)) ==> (not(not(y)) <= not(x))
+      p7a of (x := y), // y <= not(not(y))
+      p2 of(x := y, y := not(not(y)), z := not(x))
+    )
+    have(thesis) by Tautology.from(s1, s1 of(x := y, y := x))
   }
 
   val p8Cons = Theorem((not(y) <= not(x)) ==> (x <= y)) {
@@ -90,7 +87,8 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
   // annotated formulas
   val f1, f2, f3 = variable
-  val gamma, delta = variable
+  val gamma, delta = variable // RN
+  val g, d = variable
 
   val i1 = Axiom(S(L(x), R(y)) <=> (x <= y))
   val i2 = Axiom(S(L(x), L(y)) <=> (x <= not(y)))
@@ -125,6 +123,10 @@ object OrthologicWithAxiomsI extends lisa.Main:
   def S2(t1: Term, t2: Term) = S(t1, t2) // RM
   def S1(t: Term): Formula = S2(t, N)
   def S0() = S2(N, N)
+
+
+//  assume(delta.isF(d))
+//  assume(gamma.isF(g))
 
 
   val S1L = Lemma(S1(L(x)) <=> S2(L(x), R(zero))) {
@@ -180,7 +182,6 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
     have(thesis) by Tautology.from(caseL, caseR, caseN, i7)
   }
-
 
 
   /** DERIVATION RULES */
@@ -286,10 +287,15 @@ object OrthologicWithAxiomsI extends lisa.Main:
     )
   }
 
-  val leftOr = Theorem((delta === F(z)) /\ S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), F(z))) {
+  val leftOr = Theorem(delta.isF(z) /\ S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), F(z))) {
     assume(S(L(x), delta) /\ S(L(y), delta))
 
-//    val caseL = have(S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
+    val caseL = have(delta.isL(z) /\ S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
+      i2 of (y := z), i2 of (x := y, y := z),
+      p6b of (z := not(z)),
+      i2 of (x := (x u y), y := z)
+    )
+//    val caseL = have(delta.isL(z) /\ S(L(x), L(z)) /\ S(L(y), L(z)) |- S(L(x u y), L(z))) by Tautology.from(
 //      i2 of (y := z), i2 of (x := y, y := z),
 //      p6b of (z := not(z)),
 //      i2 of (x := (x u y), y := z)
