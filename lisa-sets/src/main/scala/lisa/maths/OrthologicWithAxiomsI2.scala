@@ -54,6 +54,12 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val p9b = Axiom(one <= (x u not(x)))
 
 
+  val p3c = Theorem(not(one) <= x) {
+    have(not(x) <= one) by Restate.from(p3b of (x := not(x)))
+    have(not(one) <= not(not(x))) by Tautology.from(lastStep, p8 of (x := not(x), y := one))
+    have(thesis) by Tautology.from(lastStep, p7b, p2 of (x := not(one), y := not(not(x)), z := x))
+  }
+
   val notEquiv = Theorem((x <= not(y)) <=> (y <= not(x))) {
     val s1 = have((x <= not(y)) ==> (y <= not(x))) by Tautology.from(
       p8 of (y := not(y)), // (x <= not(y)) ==> (not(not(y)) <= not(x))
@@ -73,6 +79,13 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     )
   }
 
+  val notnot = Theorem((x <= not(not(y))) <=> (x <= y)) {
+    have(thesis) by Tautology.from(
+      p7a of (x := y), p2 of (y := not(not(y)), z := y),
+      p7b of (x := y), p2 of (z := not(not(y)))
+    )
+  }
+
 
   /** ORTHOLOGIC SEQUENT ENCODING */
 
@@ -81,8 +94,9 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val N = Constant("N")
 
   val S = ConstantPredicateLabel("S", 2)
+  val I = ConstantFunctionLabel("I", 1) // interpretation of annotated formula
 
-  Set(L, R, N, S) foreach addSymbol
+  Set(L, R, N, S, I) foreach addSymbol
 
 
   // annotated formulas
@@ -90,16 +104,12 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val gamma, delta = variable // RN
   val g, d = variable
 
-  val i1 = Axiom(S(L(x), R(y)) <=> (x <= y))
-  val i2 = Axiom(S(L(x), L(y)) <=> (x <= not(y)))
-  val i3 = Axiom(S(R(x), R(y)) <=> (not(x) <= y))
-  val i4 = Axiom(S(L(x), N) <=> (x <= zero))
-  val i5 = Axiom(S(R(x), N) <=> (one <= x))
-  val i6 = Axiom(S(N, N) <=> (one <= zero))
 
-  // ASK ok ?
-  val i0 = Axiom(S(gamma, delta) <=> S(delta, gamma))
+  val j1 = Axiom(I(L(x)) === x)
+  val j2 = Axiom(I(R(x)) === not(x))
+  val j3 = Axiom(I(N) === one)
 
+  val j4 = Axiom(S(gamma, delta) <=> (I(gamma) <= not(I(delta))))
 
 
   extension (t: Term)
@@ -114,121 +124,80 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   def S0() = S2(N, N)
 
 
+  val commutS = Theorem(S(gamma, delta) <=> S(delta, gamma)) {
+    sorry
+  }
+
+  val SFR = Theorem(S(gamma, R(y)) <=> (I(gamma) <= y)) {
+    have(S(gamma, R(y)) <=> (I(gamma) <= not(I(R(y))))) by Tautology.from(j4 of(delta := R(y)))
+    thenHave(S(gamma, R(y)) <=> (I(gamma) <= not(not(y)))) by Substitution.ApplyRules(j2 of (x := y))
+    have(thesis) by Tautology.from(lastStep, notnot of (x := I(gamma)))
+  }
+
+  val SLF = Theorem(S(L(x), delta) <=> (x <= not(I(delta)))) {
+    have(S(L(x), delta) <=> (I(L(x)) <= not(I(delta)))) by Tautology.from(j4 of(gamma := L(x)))
+    thenHave(thesis) by Substitution.ApplyRules(j1)
+  }
+
+  // TODO use above ?
+  val SLL = Theorem(S(L(x), R(y)) <=> (x <= y)) {
+    have(S(L(x), R(y)) <=> (I(L(x)) <= not(I(R(y))))) by Tautology.from(j4 of (gamma := L(x), delta := R(y)))
+    thenHave(S(L(x), R(y)) <=> (x <= not(not(y)))) by Substitution.ApplyRules(j1, j2 of (x := y))
+    have(thesis) by Tautology.from(lastStep, notnot)
+  }
+
 
 
   /** DERIVATION RULES */
 
-  // ASK how to make implicit
-  val areF: Formula = gamma.isF(g) /\ delta.isF(d)
 
   val hyp = Theorem(S(L(x), R(x))) {
-    have(thesis) by Tautology.from(p1, i1 of (y := x))
+    have(thesis) by Tautology.from(p1, SLL of (y := x))
   }
 
-  val cut = Theorem(areF /\ S(gamma, R(x)) /\ S(L(x), delta) |- areF /\ S(gamma, delta)) {
-    assume(areF)
-    val a1 = assume(S(gamma, R(x)))
-    val a2 = assume(S(L(x), delta))
-
-    val caseL = have(gamma.isL(g) |- S(gamma, delta)) subproof {
-      assume(gamma.isL(g))
-      have(S(L(g), R(x))) by Substitution.ApplyRules(gamma.isL(g))(a1)
-      val s1 = have(g <= x) by Tautology.from(lastStep, i1 of (x := g, y := x))
-
-      val caseL = have(delta.isL(d) |- S(L(g), delta)) subproof {
-        assume(delta.isL(d))
-        have(S(L(x), L(d))) by Substitution.ApplyRules(delta.isL(d))(a2)
-        have(x <= not(d)) by Tautology.from(lastStep, i2 of (y := d))
-        have(g <= not(d)) by Tautology.from(s1, lastStep, p2 of (x := g, y := x, z := not(d)))
-        have(S(L(g), L(d))) by Tautology.from(s1, lastStep, p2 of (x := g, y := x, z := not(d)))
-        sorry
-      }
-      val caseR = have(delta.isR(d) |- S(L(g), delta)) subproof {
-        sorry
-      }
-      val caseN = have(delta.isN(d) |- S(L(g), delta)) subproof {
-        sorry
-      }
-
-      have(S(L(g), delta)) by Tautology.from(caseL, caseR, caseN)
-      thenHave(thesis) by Substitution.ApplyRules(gamma.isL(g))
-    }
-
-    val caseR = have(gamma.isR(g) |- S(gamma, delta)) subproof {
-      sorry
-    }
-
-    val caseN = have(gamma.isN(g) |- S(gamma, delta)) subproof {
-      sorry
-    }
-
-    have(thesis) by Tautology.from(caseL, caseR, caseN)
+  val cut = Theorem(S(gamma, R(x)) /\ S(L(x), delta) |- S(gamma, delta)) {
+    assume(S(gamma, R(x)) /\ S(L(x), delta))
+    val s1 = have(I(gamma) <= x) by Tautology.from(SFR of (y := x))
+    val s2 = have(x <= not(I(delta))) by Tautology.from(SLF)
+    have(thesis) by Tautology.from(s1, s2, p2 of (x := I(gamma), y := x, z := not(I(delta))), j4)
   }
 
-  val weaken = Theorem(areF /\ S1(gamma) |- areF /\ S(gamma, delta)) {
-    val a = assume(areF /\ S1(gamma))
-
-
-
-    sorry
+  val weaken = Theorem(S1(gamma) |- S(gamma, delta)) {
+    assume(S1(gamma))
+    have(I(gamma) <= not(I(N))) by Tautology.from(j4 of (delta := N))
+    val s1 = thenHave(I(gamma) <= not(one)) by Substitution.ApplyRules(j3)
+    val s2 = have(not(one) <= not(I(delta))) by Tautology.from(p3c of (x := not(I(delta))))
+    have(thesis) by Tautology.from(s1, s2, p2 of (x := I(gamma), y := not(one), z := not(I(delta))), j4)
   }
 
-  val leftAnd = Theorem(areF /\ S(L(x), delta) |- areF /\ S(L(x n y), delta)) {
-    assume(areF /\ S(L(x), delta))
-
-//    val s1 = have(x <= z |- (x n y) <= z) by Tautology.from(p4a, p2 of (x := (x n y), y := x))
-//
-//    val caseL = have(S(L(x), L(z)) |- S(L(x n y), L(z))) by Tautology.from(
-//      i2 of (y := z), s1 of (z := not(z)), i2 of (x := (x n y), y := z)
-//    )
-//    val caseR = have(S(L(x), R(z)) |- S(L(x n y), R(z))) by Tautology.from(
-//      i1 of (y := z), s1, i1 of (x := (x n y), y := z)
-//    )
-//    val caseN = have(S(L(x), N) |- S(L(x n y), N)) by Tautology.from(
-//      i4, s1 of (z := zero), i4 of (x := (x n y))
-//    )
-//
-//    have(thesis) by Tautology.from(
-//      i7b of (gamma := L(x), x := z),
-//      caseL, caseR, caseN,
-//      i7b of (gamma := L(x n y), x := z)
-//    )
-    sorry
+  val leftAnd = Theorem(S(L(x), delta) |- S(L(x n y), delta)) {
+//    assume(S(L(x), delta))
+//    have(x <= not(I(delta))) by Tautology.from(SLF)
+//    have((x n y) <= not(I(delta))) by Tautology.from(p4a, lastStep, p2 of (x := (x n y), y := x, z := not(I(delta))))
+//    thenHave(I(L(x n y)) <= not(I(delta))) by Substitution.ApplyRules(j1 of (x := (x n y)))
+//    have(thesis) by Tautology.from(lastStep, j4 of (gamma := L(x n y)))
+    have(S(L(x n y), R(x))) by Tautology.from(p4a, SLL of(x := (x n y), y := x))
+    have(thesis) by Tautology.from(lastStep, cut of (gamma := L(x n y)))
   }
 
-  val leftOr = Theorem(areF /\ S(L(x), delta) /\ S(L(y), delta) |- areF /\ S(L(x u y), delta)) {
-    val a1 = assume(S(L(x), delta) /\ S(L(y), delta))
-
-    val caseL = have(delta.isL(d) |- S(L(x u y), delta)) subproof {
-      assume(delta.isL(d))
-      have(S(L(x), L(d)) /\ S(L(y), L(d))) by Substitution.ApplyRules(delta.isL(d))(a1)
-      have(S(L(x u y), L(d))) by Tautology.from(
-        lastStep,
-        i2 of (y := d), i2 of(x := y, y := d),
-        p6b of (z := not(d)),
-        i2 of(x := (x u y), y := d)
-      )
-      thenHave(thesis) by Substitution.ApplyRules(delta.isL(d))
-    }
-
-    val caseR = have(delta.isR(d) |- S(L(x u y), delta)) subproof {
-      sorry
-    }
-
-    val caseN = have(delta.isN(d) |- S(L(x u y), delta)) subproof {
-      sorry
-    }
-
-    have(thesis) by Tautology.from(caseL, caseR, caseN)
+  val leftOr = Theorem(S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), delta)) {
+    assume(S(L(x), delta) /\ S(L(y), delta))
+    val s1 = have(x <= not(I(delta))) by Tautology.from(SLF)
+    val s2 = have(y <= not(I(delta))) by Tautology.from(SLF of (x := y))
+    have((x u y) <= not(I(delta))) by Tautology.from(s1, s2, p6b of (z := not(I(delta))))
+    thenHave(I(L(x u y)) <= not(I(delta))) by Substitution.ApplyRules(j1)
+    have(thesis) by Tautology.from(lastStep, j4 of (gamma := L(x u y)))
   }
 
-  val leftNot = Theorem(S2(gamma, R(x)) |- S(gamma, L(not(x)))) {
-    sorry
+  val leftNot = Theorem(S(gamma, R(x)) |- S(gamma, L(not(x)))) {
+    have(S(L(x), L(not(x)))) subproof {
+      have(I(L(x)) <= not(I(L(not(x))))) by Substitution.ApplyRules(j1)(p7a)
+      have(thesis) by Tautology.from(lastStep, j4 of (gamma := L(x), delta := L(not(x))))
+    }
+    have(thesis) by Tautology.from(lastStep, cut of (delta := L(not(x))))
   }
 
 
-
-  /** RULES */
 
 
   object RestateWithAxioms extends ProofTactic:
