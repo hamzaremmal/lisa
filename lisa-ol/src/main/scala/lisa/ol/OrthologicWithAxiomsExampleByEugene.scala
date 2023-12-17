@@ -2,10 +2,10 @@ package lisa.ol
 
 import lisa.fol.FOL as F
 import lisa.maths.settheory.SetTheory.*
-import lisa.ol.OrthologicWithAxiomsExample.{DEF, assume, have, sorry, thenHave, thesis, ∀}
+import lisa.ol.OrthologicWithAxiomsExampleByEugene.{DEF, assume, have, sorry, thenHave, thesis, ∀}
 import lisa.prooflib.ProofTacticLib.ProofTactic
 
-object OrthologicWithAxiomsExample extends lisa.Main:
+object OrthologicWithAxiomsExampleByEugene extends lisa.Main:
 
   private val o = variable
 
@@ -18,11 +18,11 @@ object OrthologicWithAxiomsExample extends lisa.Main:
   val x, y, z = variable
 
 
-  def neg2(t: Term): Term = app(OrthologicWithAxiomsExample.neg2, x)
+  def neg2(t: Term): Term = app(OrthologicWithAxiomsExampleByEugene.neg2, x)
   extension (left: Term)
-    def leq(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsExample.leq)
-    def meet(right: Term): Term = app(OrthologicWithAxiomsExample.meet, pair(left, right))
-    def join(right: Term): Term = app(OrthologicWithAxiomsExample.join, pair(left, right))
+    def leq(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsExampleByEugene.leq)
+    def meet(right: Term): Term = app(OrthologicWithAxiomsExampleByEugene.meet, pair(left, right))
+    def join(right: Term): Term = app(OrthologicWithAxiomsExampleByEugene.join, pair(left, right))
 
 
   // TODO everywhere: x,y in S
@@ -124,5 +124,5 @@ object OrthologicWithAxiomsExample extends lisa.Main:
 
   end RestateWithAxioms
 
-end OrthologicWithAxiomsExample
+end OrthologicWithAxiomsExampleByEugene
 
