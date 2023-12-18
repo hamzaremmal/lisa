@@ -4,7 +4,8 @@ import lisa.kernel.proof.RunningTheory
 import lisa.prooflib.ProofTacticLib.ProofTactic
 import lisa.prooflib.ProofTacticLib.UnimplementedProof
 import lisa.prooflib.*
-import lisa.utils.KernelHelpers.{_, given}
+import lisa.prooflib.BasicStepTactic.TacticSubproof
+import lisa.utils.KernelHelpers.{*, given}
 import lisa.utils.LisaException
 import lisa.utils.UserLisaException
 import lisa.utils.UserLisaException.*
@@ -28,7 +29,7 @@ trait WithTheorems {
   // TODO: reseal this class
   // see https://github.com/lampepfl/dotty/issues/19031
   // and https://github.com/epfl-lara/lisa/issues/190
-  abstract class Proof(assump: List[F.Formula]) {
+  abstract class Proof(assump: List[F.Formula]) { self =>
     val possibleGoal: Option[F.Sequent]
     type SelfType = this.type
     type OutsideFact >: JUSTIFICATION
@@ -180,7 +181,7 @@ trait WithTheorems {
     }
 
     /**
-     * For a fact, returns the sequent that the fact proove and the position of the fact in the proof.
+     * For a fact, returns the sequent that the fact proves and the position of the fact in the proof.
      *
      * @param fact Any fact, possibly instantiated, belonging to the proof
      * @return its proven sequent and position
@@ -304,6 +305,27 @@ trait WithTheorems {
       
       def orElse(that: => ProofTacticJudgement): ProofTacticJudgement =
         if this.isValid then this else that
+        
+      def andThen(using line: sourcecode.Line, file: sourcecode.File)
+                 (tactic: Fact => ProofTacticJudgement): ProofTacticJudgement =
+        if this.isValid then 
+          val f = validate(line, file)
+          tactic(f)
+        else this
+
+      def andThen2(using line: sourcecode.Line, file: sourcecode.File)
+                  (tactic: (ip: InnerProof) ?=> Fact => ip.ProofStep): ProofTacticJudgement =
+        if !this.isValid then this
+        else
+          TacticSubproof(using self): //(iProof: InnerProof) ?=>
+            val s1 = validate(line, file)
+            tactic(s1)
+//        this match
+//          case ipt: InvalidProofTactic => this
+//          case vpt: ValidProofTactic => 
+//            TacticSubproof(using self): iProof ?=>
+//              newProofStep(vpt)
+//              tactic
 
       def validate(line: sourcecode.Line, file: sourcecode.File): ProofStep = {
         this match {
