@@ -2,7 +2,7 @@ package lisa.maths
 
 import lisa.kernel.proof.SequentCalculus.SCProofStep
 import lisa.prooflib.Library
-import lisa.prooflib.ProofTacticLib.ProofTactic
+import lisa.prooflib.ProofTacticLib.*
 
 import scala.collection.mutable.Set as mSet
 import scala.collection.mutable.Map as mMap
@@ -257,71 +257,28 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
   object RestateWithAxioms extends ProofTactic:
 
-//    def apply(using lib: library.type, proof: lib.Proof)
-//             (axioms: Set[?])
-//             (bot: Sequent): proof.ProofTacticJudgement = ???
+    def apply(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+
+      if bot.left.nonEmpty || bot.right.size != 1 then
+        proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
+      else bot.right.head match
+        case (left <= right) => withParameters(left, right)
+//          prove(L(left), R(right)) andThen2 { lastStep =>
+//            have(left <= right) by Tautology.from(lastStep, SLR of(x := left, y := right))
+//          }
+        case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
+
+    end apply
 
     /**
      * Produce proof of () |- left <= right
      */
     def withParameters(using lib: library.type, proof: lib.Proof)
-                      (left: Term, right: Term): proof.ProofTacticJudgement = TacticSubproof:
+                      (left: Term, right: Term): proof.ProofTacticJudgement =
+      prove(L(left), R(right)) andThen2 { lastStep =>
+        have(left <= right) by Tautology.from(lastStep, SLR of(x := left, y := right))
+      }
 
-      val s = prove(L(left), R(right))
-      if !s.isValid then return proof.InvalidProofTactic("Could not prove")
-      else
-        have(left <= right) by Tautology.from(
-          have(s),
-          SLR of (x := left, y := right)
-        )
-
-//      prove(L(left), R(right)) andThen {
-//        s => {
-//          have(left <= right) by Tautology.from(
-//            s,
-//            SLR of(x := left, y := right)
-//          )
-//        }
-//      }
-
-    end withParameters
-
-    object Hyp extends ProofTactic:
-
-      /** () |- S(L(x), R(x)) */
-      def withParameters(using lib: library.type, proof: lib.Proof) // AR if needed
-                        (gamma1: Term, delta1: Term): proof.ProofTacticJudgement =
-        (gamma1, delta1) match
-          case (L(x1), R(y)) if x1 == y =>
-//            have(S(L(x1), R(y))) by Restate.from(hyp of (x := x1))
-            ???
-          case _ =>
-            return proof.InvalidProofTactic("Hyp can not be applied")
-
-    end Hyp
-
-//    def proveWithHyp(using lib: library.type, proof: lib.Proof)
-//                    (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
-//      (gamma1, delta1) match
-//        case (L(x1), R(y)) if x1 == y =>
-//          have(S(L(x1), R(y))) by Restate.from(hyp of (x := x1))
-//        case _ =>
-//          return proof.InvalidProofTactic("Hyp can not be applied")
-
-
-//    def proveWithLeftAnd(using lib: library.type, proof: lib.Proof)
-//                        (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
-//      (gamma1, delta1) match
-//        case (L(x1 n y1), delta1) =>
-//          val s1 = prove(L(x1), delta1) // TODO other option
-//          if !s1.isValid then proof.InvalidProofTactic("LeftAnd can not be applied")
-//          else
-//            have(S(L(x1 n y1), delta1)) by Tautology.from(
-//              have(s1),
-//              leftAnd of (x := x1, y := y1, delta := delta1)
-//            )
-//        case _ =>
-//          proof.InvalidProofTactic("LeftAnd can not be applied")
 
     // TODO? move orElse as extension here
 
@@ -567,34 +524,29 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
 
   val test1 = Theorem(x <= x) {
-    val s = RestateWithAxioms.withParameters(x, x)
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
 
   val test2a = Theorem((x n (not(x))) <= zero) {
-    val s = RestateWithAxioms.withParameters((x n (not(x))), zero)
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
 
   val test2 = Theorem(x <= (x u y)) {
-    val s = RestateWithAxioms.withParameters(x, (x u y))
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
 
   val test3 = Theorem((y n x) <= y) {
-    val s = RestateWithAxioms.withParameters((y n x), y)
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
 
   val test3b = Theorem((y n x) <= x) {
-    val s = RestateWithAxioms.withParameters((y n x), x)
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
 
   val test4 = Theorem((x n y) <= (y u z)) {
-    val s = RestateWithAxioms.withParameters((x n y), (y u z))
-    have(thesis) by Restate.from(have(s))
+    have(thesis) by RestateWithAxioms.apply
   }
+
 
 //  val semiDistributivity = Theorem((x u (y n z)) <= ((x u y) n (x u z))) {
 //    val s = RestateWithAxioms.withParameters((x u (y n z)), ((x u y) n (x u z)))
