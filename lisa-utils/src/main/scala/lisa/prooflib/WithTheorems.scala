@@ -301,6 +301,9 @@ trait WithTheorems {
         case ValidProofTactic(_, _, _) => true
         case InvalidProofTactic(_) => false
       }
+      
+      def orElse(that: => ProofTacticJudgement): ProofTacticJudgement =
+        if this.isValid then this else that
 
       def validate(line: sourcecode.Line, file: sourcecode.File): ProofStep = {
         this match {

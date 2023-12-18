@@ -111,8 +111,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val j3 = Axiom(I(N) === one)
 
 
-  def S2(t1: Term, t2: Term) = S(t1, t2) // RM
-  def S1(t: Term): Formula = S2(t, N) \/ S2(N, t)
+  def S1(t: Term): Formula = S(t, N) \/ S(N, t)
 
 
   val commutS = Theorem(S(gamma, delta) <=> S(delta, gamma)) {
@@ -234,15 +233,10 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
     def proveWithHyp(using lib: library.type, proof: lib.Proof)
                     (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
-      println(s"hi0 $gamma1, $delta1")
       (gamma1, delta1) match
-        case (L(x), R(y)) if x == y =>
-          val r = have(S(L(x), R(y))) by Restate.from(hyp)
-          println("hi2")
-          r
+        case (L(x1), R(y)) if x1 == y =>
+          have(S(L(x1), R(y))) by Restate.from(hyp of (x := x1))
         case _ =>
-          println("hi_")
-//          have(x <= x) by Restate.from(p1)
           return proof.InvalidProofTactic("Hyp can not be applied")
 
     def proveWithWeaken(using lib: library.type, proof: lib.Proof)
@@ -263,29 +257,33 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     def proveWithLeftAnd(using lib: library.type, proof: lib.Proof)
                         (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
       (gamma1, delta1) match
-        case (L(x n y), delta1) =>
-          val s1 = prove(L(x), delta1) // TODO other option
+        case (L(x1 n y1), delta1) =>
+          val s1 = prove(L(x1), delta1) // TODO other option
           if !s1.isValid then proof.InvalidProofTactic("LeftAnd can not be applied")
           else
-            have(S(L(x n y), delta1)) by Tautology.from(
+            have(S(L(x1 n y1), delta1)) by Tautology.from(
               have(s1),
-              leftAnd of (delta := delta1)
+              leftAnd of (x := x1, y := y1, delta := delta1)
             )
         case _ =>
           proof.InvalidProofTactic("LeftAnd can not be applied")
+
+    // TODO move orElse as extension here
 
     // proove () |- S(gamma, delta) if can
     private def prove(using lib: library.type, proof: lib.Proof)
                      (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = // TacticSubproof:
 
-      val p1 = proveWithHyp(gamma1, delta1)
-      println("after proveWithHyp")
-      if p1.isValid then p1
-      else
-        val p2 = proveWithLeftAnd(gamma1, delta1)
-        if p2.isValid then p2
-        else
-          proof.InvalidProofTactic("ohoh")
+      proveWithHyp(gamma1, delta1) orElse proveWithLeftAnd(gamma1, delta1)
+/*
+//      val p1 = proveWithHyp(gamma1, delta1)
+//      println("after proveWithHyp")
+//      if p1.isValid then p1
+//      else
+//        val p2 = proveWithLeftAnd(gamma1, delta1)
+//        if p2.isValid then p2
+//        else
+//          proof.InvalidProofTactic("ohoh")
 
 //      case class Done(p: proof.ProofTacticJudgement)
 //      case class Opt(prem: (Term, Term), proofFromPrem: proof.Fact => proof.ProofTacticJudgement)
@@ -355,27 +353,27 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 //        LazyList(proveWithHyp, proveWithWeaken)
 //          .collectFirst { case t if t.isValid => t }
 //          .getOrElse { proof.InvalidProofTactic("No rule can be applied") }
-
+*/
     end prove
 
   end RestateWithAxioms
 
 
-//  val test1 = Theorem(x <= x) {
-//    val s = RestateWithAxioms.withParameters(x, x)
-//    have(thesis) by Restate.from(have(s))
-//  }
+  val test1 = Theorem(x <= x) {
+    val s = RestateWithAxioms.withParameters(x, x)
+    have(thesis) by Restate.from(have(s))
+  }
 
 //  val test2 = Theorem(x <= (x u y)) {
 //    val s = RestateWithAxioms.withParameters(x, (x u y))
 //    have(thesis) by Restate.from(have(s))
 //  }
 
-//  val test3 = Theorem((y n x) <= y) {
-//    val s = RestateWithAxioms.withParameters((y n x), y)
-//    println("after withParameters")
-//    have(thesis) by Restate.from(have(s))
-//  }
+  val test3 = Theorem((y n x) <= y) {
+    val s = RestateWithAxioms.withParameters((y n x), y)
+    println("after withParameters")
+    have(thesis) by Restate.from(have(s))
+  }
 
 //  val test3b = Theorem((y n x) <= x) {
 //    val s = RestateWithAxioms.withParameters((y n x), x)
