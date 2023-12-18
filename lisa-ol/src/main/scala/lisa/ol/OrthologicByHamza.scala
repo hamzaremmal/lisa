@@ -49,6 +49,7 @@ object OrthologicByHamza extends lisa.Main {
   private val P4 = Axiom(x /\ y <= x)
   private val P4p = Axiom(x <= x \/ y)
   private val P5 = Axiom(x /\ y <= y)
+  private val P5p = Axiom(y <= x \/ y)
   private val P6 = Axiom((x <= y) /\ (x <= z) ==> x <= (y /\ z))
   private val P7 = Axiom(x <= !(!x))
   private val P8 = Axiom(x <= y ==> !y <= !x)
@@ -86,8 +87,27 @@ object OrthologicByHamza extends lisa.Main {
     have(thesis) by LeftOr(lhs, rhs)
   }
 
-  private val LEFT_AND = Theorem((x <= !y) |- (y <= !(x /\ z))) {
-    sorry
+  private val LEFT_AND = Theorem((x <= !y) \/ (y <= 0) |- (x <= !(y /\ z)) \/ ((y /\ z) <= 0)) {
+
+    val lhs = have(x <= !y |- (x <= !(y /\ z)) \/ ((y /\ z) <= 0)) subproof {
+      val step1 = have(!y <= (!y \/ !z)) by Tautology.from(P4p of (x := !y, y := !z))
+      val step2 = have((!y \/ !z) <= !(y /\ z)) by Tautology.from(V8p of (x := y, y := z))
+      val step3 = have((!y <= (!y \/ !z)) /\ ((!y \/ !z) <= !(y /\ z))) by RightAnd(step1, step2)
+      val step4 = have(!y <= !(y /\ z)) by Tautology.from(step3, P2 of (x := !y, y := (!y \/ !z), z := !(y /\ z)))
+      val step5 = have(x <= !y |- x <= !y) by Restate
+      val step6 = have(x <= !y |- (x <= !y) /\ (!y <= !(y /\ z))) by RightAnd(step4, step5)
+      have(thesis) by Tautology.from(step6, P2 of (y := !y, z := !(y /\ z)))
+    }
+
+    val rhs = have(y <= 0 |- (x <= !(y /\ z)) \/ ((y /\ z) <= 0)) subproof {
+      val step1 = have(y <= 0 |- y <= 0) by Restate
+      val step2 = have(y <= 0 |- (y /\ z) <= y) by Tautology.from(P4 of (x := y, y := z))
+      val step3 = have(y <= 0 |- ((y /\ z) <= y) /\ (y <= 0)) by RightAnd(step1, step2)
+      val step4 = have(y <= 0 |- (y /\ z) <= 0) by Tautology.from(step3, P2 of (x := (y /\ z), z := 0))
+      have(thesis) by RightOr(step4)
+    }
+
+    have(thesis) by LeftOr(lhs, rhs)
   }
 
   private val RIGHT_AND = Theorem((x <= y) /\ (x <= z) |- x <= (y /\ z)) {
