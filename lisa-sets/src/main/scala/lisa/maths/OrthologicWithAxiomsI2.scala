@@ -4,28 +4,26 @@ import lisa.kernel.proof.SequentCalculus.SCProofStep
 import lisa.prooflib.Library
 import lisa.prooflib.ProofTacticLib.ProofTactic
 
-import scala.collection.mutable
 import scala.collection.mutable.Map as mMap
 
 object OrthologicWithAxiomsI2 extends lisa.Main:
 
+
+  /** ORTHOLATTICE SYMBOLS **/
+
   // ortholattice elements
   val x, y, z = variable
-
-
-  /** ORTHOLATTICE SYMBOLS */
 
   val <= = ConstantPredicateLabel("<=", 2)
 
   val u = ConstantFunctionLabel("u", 2)
   val n = ConstantFunctionLabel("n", 2)
-  val not = ConstantFunctionLabel("¬", 1)
+  val not = ConstantFunctionLabel("¬", 1) // RN
 
   val zero = Constant("0")
   val one = Constant("1")
 
   Set(<=, u, n, not, zero, one) foreach addSymbol
-
 
   extension (left: Term) // FIX
 //    def <=(right: Term): Formula = OrthologicWithAxioms.<=(left, right)
@@ -36,7 +34,8 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     def n(right: Term): Term = AppliedFunction(OrthologicWithAxioms.n, Seq(left, right))
 
 
-  /** ORTHOLATTICE AXIOMS */
+
+  /** ORTHOLATTICE AXIOMS **/
 
   val p1 = Axiom(x <= x)
   val p2 = Axiom((x <= y) /\ (y <= z) ==> (x <= z))
@@ -54,6 +53,8 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val p9a = Axiom((x n not(x)) <= zero)
   val p9b = Axiom(one <= (x u not(x)))
 
+
+  // REVIEW
 
   val p3c = Theorem(not(one) <= x) {
     have(not(x) <= one) by Restate.from(p3b of (x := not(x)))
@@ -88,28 +89,26 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
 
-  /** ORTHOLOGIC SEQUENT ENCODING */
+  /** ORTHOLOGIC SEQUENT ENCODING **/
 
-  val L = ConstantFunctionLabel("L", 1)
-  val R = ConstantFunctionLabel("R", 1)
-  val N = Constant("N")
+  // annotated formulas
+  val gamma, delta = variable // RN
 
-  val S = ConstantPredicateLabel("S", 2)
+  val L = ConstantFunctionLabel("L", 1) // Annotate term as formula on left
+  val R = ConstantFunctionLabel("R", 1) // Annotate term as formula on right
+  val N = Constant("N") // A placeholder for no formula
+
+  val S = ConstantPredicateLabel("S", 2) // OL Sequent of 2 annotated formulas
   val I = ConstantFunctionLabel("I", 1) // interpretation of annotated formula
 
   Set(L, R, N, S, I) foreach addSymbol
 
 
-  // annotated formulas
-  val f1, f2, f3 = variable
-  val gamma, delta = variable // RN
-
-
+  // RN
+  val j4 = Axiom(S(gamma, delta) <=> (I(gamma) <= not(I(delta))))
   val j1 = Axiom(I(L(x)) === x)
   val j2 = Axiom(I(R(x)) === not(x))
   val j3 = Axiom(I(N) === one)
-
-  val j4 = Axiom(S(gamma, delta) <=> (I(gamma) <= not(I(delta))))
 
 
   def S2(t1: Term, t2: Term) = S(t1, t2) // RM
@@ -135,22 +134,31 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
   // TODO use above ?
-  val SLL = Theorem(S(L(x), R(y)) <=> (x <= y)) {
-    have(S(L(x), R(y)) <=> (I(L(x)) <= not(I(R(y))))) by Tautology.from(j4 of (gamma := L(x), delta := R(y)))
+  val SLR = Theorem(S(L(x), R(y)) <=> (x <= y)) {
+    have(S(L(x), R(y)) <=> (I(L(x)) <= not(I(R(y))))) by Restate.from(j4 of (gamma := L(x), delta := R(y)))
     thenHave(S(L(x), R(y)) <=> (x <= not(not(y)))) by Substitution.ApplyRules(j1, j2 of (x := y))
     have(thesis) by Tautology.from(lastStep, notnot)
   }
 
-
-
-  /** DERIVATION RULES */
-
-
-  val hyp = Theorem(S(L(x), R(x))) {
-    have(thesis) by Tautology.from(p1, SLL of (y := x))
+  val SLL = Theorem(S(L(x), L(y)) <=> (x <= not(y))) {
+    have(thesis) by Substitution.ApplyRules(j1, j1 of (x := y))(j4 of (gamma := L(x), delta := L(y)))
   }
 
-  val cut = Theorem(S(gamma, R(x)) /\ S(L(x), delta) |- S(gamma, delta)) {
+  val SRR = Theorem(S(R(x), R(y)) <=> (not(x) <= y)) {
+    have(S(R(x), R(y)) <=> (I(R(x)) <= not(I(R(y))))) by Restate.from(j4 of (gamma := R(x), delta := R(y)))
+    thenHave(S(R(x), R(y)) <=> (not(x) <= not(not(y)))) by Substitution.ApplyRules(j2, j2 of (x := y))
+    have(thesis) by Tautology.from(lastStep, notnot of (x := not(x)))
+  }
+
+
+
+  /** DERIVATION RULES **/
+
+  val hyp = Theorem(S(L(x), R(x))) {
+    have(thesis) by Tautology.from(p1, SLR of (y := x))
+  }
+
+  val cut = Theorem((S(gamma, R(x)), S(L(x), delta)) |- S(gamma, delta)) {
     assume(S(gamma, R(x)) /\ S(L(x), delta))
     val s1 = have(I(gamma) <= x) by Tautology.from(SFR of (y := x))
     val s2 = have(x <= not(I(delta))) by Tautology.from(SLF)
@@ -166,34 +174,46 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
   val leftAnd = Theorem(S(L(x), delta) |- S(L(x n y), delta)) {
-    have(S(L(x n y), R(x))) by Tautology.from(p4a, SLL of(x := (x n y), y := x))
+    have(S(L(x n y), R(x))) by Tautology.from(p4a, SLR of(x := (x n y), y := x))
     have(thesis) by Tautology.from(lastStep, cut of (gamma := L(x n y)))
   }
 
-  val leftOr = Theorem(S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), delta)) {
+  val leftOr = Theorem((S(L(x), delta), S(L(y), delta)) |- S(L(x u y), delta)) {
     assume(S(L(x), delta) /\ S(L(y), delta))
-    val s1 = have(x <= not(I(delta))) by Tautology.from(SLF)
-    val s2 = have(y <= not(I(delta))) by Tautology.from(SLF of (x := y))
-    have((x u y) <= not(I(delta))) by Tautology.from(s1, s2, p6b of (z := not(I(delta))))
+    have((x <= not(I(delta))) /\ (y <= not(I(delta)))) by Tautology.from(SLF, SLF of (x := y))
+    have((x u y) <= not(I(delta))) by Tautology.from(lastStep, p6b of (z := not(I(delta))))
     thenHave(I(L(x u y)) <= not(I(delta))) by Substitution.ApplyRules(j1)
     have(thesis) by Tautology.from(lastStep, j4 of (gamma := L(x u y)))
   }
 
   val leftNot = Theorem(S(gamma, R(x)) |- S(gamma, L(not(x)))) {
-    have(S(L(x), L(not(x)))) subproof {
-      have(I(L(x)) <= not(I(L(not(x))))) by Substitution.ApplyRules(j1)(p7a)
-      have(thesis) by Tautology.from(lastStep, j4 of (gamma := L(x), delta := L(not(x))))
-    }
+    have(S(L(x), L(not(x)))) by Tautology.from(p7a, SLL of (y := not(x)))
     have(thesis) by Tautology.from(lastStep, cut of (delta := L(not(x))))
   }
 
+  val rightAnd = Theorem((S(gamma, R(x)), S(gamma, R(y))) |- S(gamma, R(x n y))) {
+    assume(S(gamma, R(x)) /\ S(gamma, R(y)))
+    have((I(gamma) <= x) /\ (I(gamma) <= y)) by Tautology.from(SFR of (y := x), SFR)
+    have(I(gamma) <= (x n y)) by Tautology.from(lastStep, p6a of (x := I(gamma), y := x, z := y))
+    have(thesis) by Tautology.from(lastStep, SFR of (y := (x n y)))
+  }
+
+  val rightOr = Theorem(S(gamma, R(x)) |- S(gamma, R(x u y))) {
+    have(S(L(x), R(x u y))) by Tautology.from(p4b, SLR of(y := (x u y)))
+    have(thesis) by Tautology.from(lastStep, cut of (delta := R(x u y)))
+  }
+
+  val rightNot = Theorem(S(L(x), delta) |- S(R(not(x)), delta)) {
+    have(S(R(not(x)), R(x))) by Tautology.from(p7b, SRR of (x := not(x), y := x))
+    have(thesis) by Tautology.from(lastStep, cut of (gamma := R(not(x))))
+  }
 
 
   object RestateWithAxioms extends ProofTactic:
 
-    def apply(using lib: library.type, proof: lib.Proof)
-             (axioms: Set[?])
-             (bot: Sequent): proof.ProofTacticJudgement = ???
+//    def apply(using lib: library.type, proof: lib.Proof)
+//             (axioms: Set[?])
+//             (bot: Sequent): proof.ProofTacticJudgement = ???
 
     /**
      * Produce proof of () |- left <= right
@@ -202,40 +222,92 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
                       (left: Term, right: Term): proof.ProofTacticJudgement = TacticSubproof:
 
       val s = prove(L(left), R(right))
+      println("after prove")
       if !s.isValid then proof.InvalidProofTactic("Could not prove")
       else
         have(left <= right) by Tautology.from(
           have(s),
-          SLL of (x := left, y := right)
+          SLR of (x := left, y := right)
         )
 
     end withParameters
 
+    def proveWithHyp(using lib: library.type, proof: lib.Proof)
+                    (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
+      println(s"hi0 $gamma1, $delta1")
+      (gamma1, delta1) match
+        case (L(x), R(y)) if x == y =>
+          val r = have(S(L(x), R(y))) by Restate.from(hyp)
+          println("hi2")
+          r
+        case _ =>
+          println("hi_")
+//          have(x <= x) by Restate.from(p1)
+          return proof.InvalidProofTactic("Hyp can not be applied")
+
+    def proveWithWeaken(using lib: library.type, proof: lib.Proof)
+                       (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
+      if gamma1 == N || delta1 == N then
+        proof.InvalidProofTactic("Weaken can only be applied to solve sequents with 2 formulas")
+      else
+        LazyList(gamma1, delta1)
+          .map(prove(_, N))
+          .collectFirst { case step if step.isValid =>
+            have(S(gamma1, delta1)) by Tautology.from(
+              have(step),
+              weaken of(gamma := gamma1, delta := delta1),
+              commutS of(gamma := gamma1, delta := delta1)
+            )
+          } getOrElse { proof.InvalidProofTactic("Weaken can not be applied") }
+
+    def proveWithLeftAnd(using lib: library.type, proof: lib.Proof)
+                        (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
+      (gamma1, delta1) match
+        case (L(x n y), delta1) =>
+          val s1 = prove(L(x), delta1) // TODO other option
+          if !s1.isValid then proof.InvalidProofTactic("LeftAnd can not be applied")
+          else
+            have(S(L(x n y), delta1)) by Tautology.from(
+              have(s1),
+              leftAnd of (delta := delta1)
+            )
+        case _ =>
+          proof.InvalidProofTactic("LeftAnd can not be applied")
+
     // proove () |- S(gamma, delta) if can
     private def prove(using lib: library.type, proof: lib.Proof)
-                     (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
+                     (gamma1: Term, delta1: Term): proof.ProofTacticJudgement = // TacticSubproof:
 
-      def proveWithHyp =
-        (gamma1, delta1) match
-          case (L(x), R(y)) if x == y =>
-            have(S(L(x), R(y))) by Restate.from(hyp)
-
-          case _ => proof.InvalidProofTactic("Hyp can not be applied")
-
-      def proveWithWeaken =
-        if gamma1 == N || delta1 == N then
-          proof.InvalidProofTactic("Weaken can only be applied to solve sequents with 2 formulas")
+      val p1 = proveWithHyp(gamma1, delta1)
+      println("after proveWithHyp")
+      if p1.isValid then p1
+      else
+        val p2 = proveWithLeftAnd(gamma1, delta1)
+        if p2.isValid then p2
         else
-          LazyList(gamma1, delta1)
-            .map(prove(_, N))
-            .collectFirst { case step if step.isValid =>
-              have(S(gamma1, delta1)) by Tautology.from(
-                have(step),
-                weaken of (gamma := gamma1, delta := delta1),
-                commutS of (gamma := gamma1, delta := delta1)
-              )
-            } getOrElse { proof.InvalidProofTactic("Weaken can not be applied") }
+          proof.InvalidProofTactic("ohoh")
 
+//      case class Done(p: proof.ProofTacticJudgement)
+//      case class Opt(prem: (Term, Term), proofFromPrem: proof.Fact => proof.ProofTacticJudgement)
+//
+//      val proveWithHypOpt = LazyList(
+//        Done(have(S(L(x), R(y))) by Restate.from(hyp))
+//      )
+//
+//      val proveWithWeaken1Opt =
+//        if gamma1 == N || delta1 == N then LazyList.empty
+//        else LazyList(Opt(
+//          prem = (gamma1, N),
+//          proofFromPrem = s => {
+//            have(S(gamma1, delta1)) by Tautology.from(
+//              s,
+//              weaken of (gamma := gamma1, delta := delta1)
+//            )
+//          }
+//        ))
+
+
+      /*
       def proveWithLeftNot =
         (gamma1, delta1) match
           case (gamma1, L(not(x))) =>
@@ -259,33 +331,55 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
                 commutS of (gamma := L(not(x)), delta := delta1),
               )
           case _ => proof.InvalidProofTactic("LeftNot can not be applied on first formula")
+      */
 
 
-      LazyList(() => proveWithHyp, () => proveWithWeaken, () => proveWithLeftNot, () => proveWithLeftNot2)
-//      LazyList(() => proveWithHyp)
-        .map(_())
-        .collectFirst { case p if !p.isInstanceOf[proof.InvalidProofTactic] => p }
-        .getOrElse { proof.InvalidProofTactic("No rule can be applied") }
+//      LazyList(() => proveWithHyp, () => proveWithWeaken, () => proveWithLeftNot, () => proveWithLeftNot2)
+////      LazyList(() => proveWithHyp)
+//        .map(_())
+//        .collectFirst { case p if !p.isInstanceOf[proof.InvalidProofTactic] => p }
+//        .getOrElse { proof.InvalidProofTactic("No rule can be applied") }
 
-//      proveWithHyp
+//      val opts = proveWithHypOpt ++ proveWithWeaken1Opt
+//
+//      opts.map {
+//        case Done(p) => Done(p)
+//        case Opt((x, y), pr) => (prove(x, y), pr)
+//      }.collectFirst{
+//        case Done(p) => p
+//        case (s1, s2p) if s1.isValid => s2p(s1)
+//      }
+
+
+//      TacticSubproof:
+//        LazyList(proveWithHyp, proveWithWeaken)
+//          .collectFirst { case t if t.isValid => t }
+//          .getOrElse { proof.InvalidProofTactic("No rule can be applied") }
 
     end prove
 
   end RestateWithAxioms
 
 
-  val test1 = Theorem(x <= x) {
-    val s = RestateWithAxioms.withParameters(x, x)
-    have(thesis) by Restate.from(have(s))
-  }
+//  val test1 = Theorem(x <= x) {
+//    val s = RestateWithAxioms.withParameters(x, x)
+//    have(thesis) by Restate.from(have(s))
+//  }
 
-  val test2 = Theorem(x <= (x u y)) {
-    val s = RestateWithAxioms.withParameters(x, (x u y))
-    have(thesis) by Restate.from(have(s))
-  }
+//  val test2 = Theorem(x <= (x u y)) {
+//    val s = RestateWithAxioms.withParameters(x, (x u y))
+//    have(thesis) by Restate.from(have(s))
+//  }
 
-//  val test3 = Theorem((y n x) <= x) {
-//    have(thesis) by RestateWithAxioms.withParameters(Set())((y n x), x)
+//  val test3 = Theorem((y n x) <= y) {
+//    val s = RestateWithAxioms.withParameters((y n x), y)
+//    println("after withParameters")
+//    have(thesis) by Restate.from(have(s))
+//  }
+
+//  val test3b = Theorem((y n x) <= x) {
+//    val s = RestateWithAxioms.withParameters((y n x), x)
+//    have(thesis) by Restate.from(have(s))
 //  }
 //
 //  val test4 = Theorem((x n y) <= (y u z)) {
