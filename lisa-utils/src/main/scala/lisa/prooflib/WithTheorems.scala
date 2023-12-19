@@ -302,13 +302,13 @@ trait WithTheorems {
         case ValidProofTactic(_, _, _) => true
         case InvalidProofTactic(_) => false
       }
-      
+
       def orElse(that: => ProofTacticJudgement): ProofTacticJudgement =
         if this.isValid then this else that
-        
+
       def andThen(using line: sourcecode.Line, file: sourcecode.File)
                  (tactic: Fact => ProofTacticJudgement): ProofTacticJudgement =
-        if this.isValid then 
+        if this.isValid then
           val f = validate(line, file)
           tactic(f)
         else this
@@ -317,12 +317,12 @@ trait WithTheorems {
                   (tactic: (ip: InnerProof) ?=> Fact => ip.ProofStep): ProofTacticJudgement =
         if !this.isValid then this
         else
-          TacticSubproof(using self): //(iProof: InnerProof) ?=>
+          TacticSubproof(using self): // AR needed ?
             val s1 = validate(line, file)
             tactic(s1)
 //        this match
 //          case ipt: InvalidProofTactic => this
-//          case vpt: ValidProofTactic => 
+//          case vpt: ValidProofTactic =>
 //            TacticSubproof(using self): iProof ?=>
 //              newProofStep(vpt)
 //              tactic
