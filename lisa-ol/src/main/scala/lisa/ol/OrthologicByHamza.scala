@@ -1,6 +1,6 @@
 package lisa.ol
 
-import lisa.prooflib.Library
+import lisa.prooflib.{Library, ProofsHelpers}
 import lisa.prooflib.ProofTacticLib.ProofTactic
 
 object OrthologicByHamza extends lisa.Main {
@@ -9,11 +9,11 @@ object OrthologicByHamza extends lisa.Main {
   // ================================= SETUP OF THE LIBRARY =======================================
   // ==============================================================================================
 
-  private val x, y, z = variable
-  private val meet, join = function[2]
-  private val neg2 = function[1]
-  private val leq = predicate[2]
-  private val zero, one = variable
+  val x, y, z = variable
+  val meet, join = function[2]
+  val neg2 = function[1]
+  val leq = new ConstantPredicateLabel(K.Identifier("<="), 2); addSymbol(leq)
+  val zero, one = variable
 
   // ==============================================================================================
   // ================================= IMPLICIT CONVERSIONS =======================================
@@ -59,7 +59,7 @@ object OrthologicByHamza extends lisa.Main {
   // ====================================== RULE: HYP =============================================
   // ==============================================================================================
 
-  private val HYP = Theorem(x <= x) {
+  val HYP = Theorem(x <= x) {
     have(thesis) by Tautology.from(P1)
   }
 
@@ -67,7 +67,50 @@ object OrthologicByHamza extends lisa.Main {
   // ====================================== RULE: CUT =============================================
   // ==============================================================================================
 
-  // TODO : Implement the CUT rule
+  // xR /\ xL |- ()
+  val CUT_1_1 = Theorem((1 <= x) /\ (x <= 0) |- one <= zero) {
+    have(thesis) by Tautology.from(P2 of (x := 1, y := x, z := 0))
+  }
+
+  // xR /\ (xL, yL) |- yL
+  val CUT_1_2 = Theorem((1 <= x) /\ (x <= !y) |- (y <= 0)) {
+    sorry
+  }
+
+  // xR /\ (xL, yR) |- yR
+  val CUT_1_3 = Theorem((1 <= x) /\ (x <= y) |- 1 <= y) {
+    have(thesis) by Tautology.from(P2 of (x := 1, y := x, z := y))
+  }
+
+  // (yL, xR) /\ xL |- yL
+  val CUT_2_1 = Theorem((y <= x) /\ (x <= 0) |- y <= 0) {
+    have(thesis) by Tautology.from(P2 of (x := y, y := x, z := 0))
+  }
+
+  // (yL, xR) /\ (xL, zL) |- (yL, zL)
+  val CUT_2_2 = Theorem((y <= x) /\ (x <= !z) |- y <= !z) {
+    have(thesis) by Tautology.from(P2 of (x := y, y := x, z := !z))
+  }
+
+  // (yL, xR) /\ (xL, zR) |- (yL, zR)
+  val CUT_2_3 = Theorem((y <= x) /\ (x <= z) |- y <= z) {
+    have(thesis) by Tautology.from(P2 of (x := y, y := x))
+  }
+
+  // (yR, xR) /\ xL |- yR
+  val CUT_3_1 = Theorem((!y <= x) /\ (x <= 0) |- 1 <= y) {
+    sorry
+  }
+
+  // (yR, xR) /\ (xL, zL) |- (yR, zL)
+  val CUT_3_2 = Theorem((!x <= y) /\ (z <= !x) |- z <= y) {
+    have(thesis) by Tautology.from(P2 of (x := z, y := !x, z := y))
+  }
+
+  // (yR, xR) /\ (xL, zR) |- (yR, zR)
+  val CUT_3_3 = Theorem((!y <= x) /\ (x <= z) |- !y <= z) {
+    have(thesis) by Tautology.from(P2 of (x := !y, y := x))
+  }
 
   // ==============================================================================================
   // ===================================== RULE: WEAKEN ===========================================
@@ -265,7 +308,7 @@ object OrthologicByHamza extends lisa.Main {
 
   // yL, xL |- yL, (!x)R <=> y <= !x |- y <= !x
   private val RIGHT_NOT_2 = Theorem(y <= !x |- y <= !x) {
-    have(thesis) by Restate
+    have(thesis) by Restate // TODO : NOT MUCH OF A PROGRESS HERE
   }
 
   // xL |- (!x)R <=> x <= 0 |- 1 <= !x
@@ -276,16 +319,49 @@ object OrthologicByHamza extends lisa.Main {
   // NOTE: WE DON'T NEED TO PROOF THE Ax Rule, NOT SURE
 
   // ==============================================================================================
-  // ========================================= TACTIC =============================================
+  // =================================== UTILITY TACTICS ==========================================
   // ==============================================================================================
 
-  trait AxiomaticSequentProofTactic {
-    def from(using lib: Library, proof: lib.Proof)(axioms: Formula*)(bot: Sequent): proof.ProofTacticJudgement
+  object HypTactic extends ProofTactic {
+
+    def solve(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+      if bot.left.nonEmpty || bot.right.size != 1 then proof.InvalidProofTactic(s"Tactic operates only on sequents of the form `() |- x <= x`")
+      else
+        TacticSubproof {
+          bot.right.head match
+            case leq(phi, psi) if phi == psi =>
+              have(bot) by Rewrite(HYP of (x := phi))
+            case leq(_, _) =>
+              proof.InvalidProofTactic(s"Left-hand side of the <= is different from its right-hand side")
+            case _ =>
+              proof.InvalidProofTactic(s"Tactic operates only on sequents of the form `() |- x <= x`")
+        }
   }
 
-  object OrthologicWithAxioms extends ProofTactic with AxiomaticSequentProofTactic:
-    def from(using lib: Library, proof: lib.Proof)(axioms: Formula*)(bot: Sequent): proof.ProofTacticJudgement =
-      Sorry.apply(bot)
+  object RightNotTactic extends ProofTactic {
+
+    def solve(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+      if bot.left.size != 1 || bot.right.size != 1 then proof.InvalidProofTactic(s"Tactic operates only on sequents of the form `Γ,φL |- Γ,(¬φ)R`")
+      else
+        TacticSubproof {
+          bot.left.head match
+            case leq(phi, OrthologicByHamza.zero) =>
+              have(bot) by Rewrite(RIGHT_NOT_3 of (x := phi))
+            case leq(phi, neg2(psi)) =>
+              have(bot) by Rewrite(RIGHT_NOT_2 of (y := phi, x := psi))
+            case leq(phi, psi) =>
+              have(bot) by Rewrite(RIGHT_NOT_1 of (x := phi, y := psi))
+            case _ =>
+              proof.InvalidProofTactic(s"Tactic operates only on sequents of the form `() |- x <= x`")
+        }
+
+  }
+
+  // ==============================================================================================
+  // ==================================== CUBIC TIME TACTIC =======================================
+  // ==============================================================================================
+
+  // TODO HR : WRITE THE ALGORITHM HERE
 
   // ==============================================================================================
   // ========================================== EXAMPLE ===========================================
