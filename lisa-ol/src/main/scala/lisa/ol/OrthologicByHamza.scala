@@ -62,14 +62,14 @@ object OrthologicByHamza extends lisa.Main {
 
   private val complementOfZero = Lemma(!0 ==== 1) {
 
-    val step1 = have(!zero <= 1) subproof {
+    val step1 = have(!0 <= 1) subproof {
       have(thesis) by Rewrite(P3p of (x := !0))
     }
 
-    val step2 = have(1 <= !zero) subproof {
+    val step2 = have(1 <= !0) subproof {
       val step1 = have(((x n y) <= y) /\ (y <= (x u y))) by RightAnd(P5, P5p)
-      val step2 = have(((0 n !zero) <= !zero) /\ (!zero <= (0 u !zero))) by Rewrite(step1 of (x := 0, y := !zero))
-      val step3 = have((0 n !zero) <= (0 u !zero)) by Tautology.from(step2, P2 of (x := (0 n !zero), y := !zero, z := (0 u !zero)))
+      val step2 = have(((0 n !0) <= !0) /\ (!0 <= (0 u !0))) by Rewrite(step1 of (x := 0, y := !0))
+      val step3 = have((0 n !0) <= (0 u !0)) by Tautology.from(step2, P2 of (x := (0 n !0), y := !0, z := (0 u !0)))
       sorry
     }
 
@@ -77,7 +77,16 @@ object OrthologicByHamza extends lisa.Main {
   }
 
   private val complementOfOne = Lemma(!1 ==== 0) {
-    sorry
+
+    val step1 = have(0 <= !1) subproof {
+      have(thesis) by Rewrite(P3 of (x := !1))
+    }
+
+    val step2 = have(!1 <= 0) subproof {
+      sorry
+    }
+
+    have(thesis) by RightAnd(step1, step2)
   }
 
   // ==============================================================================================
@@ -93,7 +102,7 @@ object OrthologicByHamza extends lisa.Main {
   // ==============================================================================================
 
   // xR /\ xL |- ()
-  private val CUT_1_1 = Theorem((1 <= x) /\ (x <= 0) |- one <= zero) {
+  private val CUT_1_1 = Theorem((1 <= x) /\ (x <= 0) |- (one <= 0)) {
     have(thesis) by Tautology.from(P2 of (x := 1, y := x, z := 0))
   }
 
@@ -162,7 +171,7 @@ object OrthologicByHamza extends lisa.Main {
   // ==============================================================================================
 
   // () |- ()
-  private val WEAKEN_1_1 = Theorem(one <= zero |- one <= zero) {
+  private val WEAKEN_1_1 = Theorem(one <= 0 |- one <= 0) {
     have(thesis) by Restate
   }
 
