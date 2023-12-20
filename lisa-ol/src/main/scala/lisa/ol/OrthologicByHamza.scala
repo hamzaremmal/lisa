@@ -8,13 +8,13 @@ object OrthologicByHamza extends lisa.Main {
   // ================================= SETUP OF THE LIBRARY =======================================
   // ==============================================================================================
 
-  val x, y, z = variable
-  val meet = ConstantFunctionLabel.infix(K.Identifier("/\\"), 2); addSymbol(meet)
-  val join = ConstantFunctionLabel.infix(K.Identifier("\\/"), 2); addSymbol(join)
-  val neg2 = ConstantFunctionLabel(K.Identifier("¬"), 1); addSymbol(neg2)
-  val leq = ConstantPredicateLabel.infix(K.Identifier("<="), 2); addSymbol(leq)
-  val zero = Constant("0"); addSymbol(zero)
-  val one = Constant("1"); addSymbol(one)
+  private val x, y, z = variable
+  private val meet = ConstantFunctionLabel.infix(K.Identifier("/\\"), 2); addSymbol(meet)
+  private val join = ConstantFunctionLabel.infix(K.Identifier("\\/"), 2); addSymbol(join)
+  private val neg2 = ConstantFunctionLabel(K.Identifier("¬"), 1); addSymbol(neg2)
+  private val leq = ConstantPredicateLabel.infix(K.Identifier("<="), 2); addSymbol(leq)
+  private val zero = Constant("0"); addSymbol(zero)
+  private val one = Constant("1"); addSymbol(one)
 
   // ==============================================================================================
   // ================================= IMPLICIT CONVERSIONS =======================================
@@ -60,7 +60,7 @@ object OrthologicByHamza extends lisa.Main {
   // ======================================== LEMMAS ==============================================
   // ==============================================================================================
 
-  val complementOfZero = Lemma(!0 ==== 1) {
+  private val complementOfZero = Lemma(!0 ==== 1) {
 
     val step1 = have(!zero <= 1) subproof {
       have(thesis) by Rewrite(P3p of (x := !0))
@@ -76,7 +76,7 @@ object OrthologicByHamza extends lisa.Main {
     have(thesis) by RightAnd(step1, step2)
   }
 
-  val complementOfOne = Lemma(!1 ==== 0) {
+  private val complementOfOne = Lemma(!1 ==== 0) {
     sorry
   }
 
@@ -84,7 +84,7 @@ object OrthologicByHamza extends lisa.Main {
   // ====================================== RULE: HYP =============================================
   // ==============================================================================================
 
-  val HYP = Theorem(x <= x) {
+  private val HYP = Theorem(x <= x) {
     have(thesis) by Tautology.from(P1)
   }
 
@@ -93,12 +93,12 @@ object OrthologicByHamza extends lisa.Main {
   // ==============================================================================================
 
   // xR /\ xL |- ()
-  val CUT_1_1 = Theorem((1 <= x) /\ (x <= 0) |- one <= zero) {
+  private val CUT_1_1 = Theorem((1 <= x) /\ (x <= 0) |- one <= zero) {
     have(thesis) by Tautology.from(P2 of (x := 1, y := x, z := 0))
   }
 
   // xR /\ (xL, yL) |- yL
-  val CUT_1_2 = Theorem((1 <= x) /\ (x <= !y) |- (y <= 0)) {
+  private val CUT_1_2 = Theorem((1 <= x) /\ (x <= !y) |- (y <= 0)) {
     assume((1 <= x) /\ (x <= !y))
     val step1 = have(!x <= !1) by Tautology.from(P8 of (x := 1, y := x))
     val step2 = have(!1 <= 0) by Tautology.from(complementOfOne)
@@ -113,27 +113,27 @@ object OrthologicByHamza extends lisa.Main {
   }
 
   // xR /\ (xL, yR) |- yR
-  val CUT_1_3 = Theorem((1 <= x) /\ (x <= y) |- 1 <= y) {
+  private val CUT_1_3 = Theorem((1 <= x) /\ (x <= y) |- 1 <= y) {
     have(thesis) by Tautology.from(P2 of (x := 1, y := x, z := y))
   }
 
   // (yL, xR) /\ xL |- yL
-  val CUT_2_1 = Theorem((y <= x) /\ (x <= 0) |- y <= 0) {
+  private val CUT_2_1 = Theorem((y <= x) /\ (x <= 0) |- y <= 0) {
     have(thesis) by Tautology.from(P2 of (x := y, y := x, z := 0))
   }
 
   // (yL, xR) /\ (xL, zL) |- (yL, zL)
-  val CUT_2_2 = Theorem((y <= x) /\ (x <= !z) |- y <= !z) {
+  private val CUT_2_2 = Theorem((y <= x) /\ (x <= !z) |- y <= !z) {
     have(thesis) by Tautology.from(P2 of (x := y, y := x, z := !z))
   }
 
   // (yL, xR) /\ (xL, zR) |- (yL, zR)
-  val CUT_2_3 = Theorem((y <= x) /\ (x <= z) |- y <= z) {
+  private val CUT_2_3 = Theorem((y <= x) /\ (x <= z) |- y <= z) {
     have(thesis) by Tautology.from(P2 of (x := y, y := x))
   }
 
   // (yR, xR) /\ xL |- yR
-  val CUT_3_1 = Theorem((!y <= x) /\ (x <= 0) |- 1 <= y) {
+  private val CUT_3_1 = Theorem((!y <= x) /\ (x <= 0) |- 1 <= y) {
     assume((!y <= x) /\ (x <= 0))
     val step1 = have(!x <= !(!y)) by Tautology.from(P8 of (x := !y, y := x))
     val step2 = have(!(!y) <= y) by Tautology.from(P7p of (x := y))
@@ -148,12 +148,12 @@ object OrthologicByHamza extends lisa.Main {
   }
 
   // (yR, xR) /\ (xL, zL) |- (yR, zL)
-  val CUT_3_2 = Theorem((!x <= y) /\ (z <= !x) |- z <= y) {
+  private val CUT_3_2 = Theorem((!x <= y) /\ (z <= !x) |- z <= y) {
     have(thesis) by Tautology.from(P2 of (x := z, y := !x, z := y))
   }
 
   // (yR, xR) /\ (xL, zR) |- (yR, zR)
-  val CUT_3_3 = Theorem((!y <= x) /\ (x <= z) |- !y <= z) {
+  private val CUT_3_3 = Theorem((!y <= x) /\ (x <= z) |- !y <= z) {
     have(thesis) by Tautology.from(P2 of (x := !y, y := x))
   }
 
