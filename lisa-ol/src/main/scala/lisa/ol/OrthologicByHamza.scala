@@ -1,6 +1,5 @@
 package lisa.ol
 
-import lisa.prooflib.{Library, ProofsHelpers}
 import lisa.prooflib.ProofTacticLib.ProofTactic
 
 object OrthologicByHamza extends lisa.Main {
@@ -10,10 +9,12 @@ object OrthologicByHamza extends lisa.Main {
   // ==============================================================================================
 
   val x, y, z = variable
-  val meet, join = function[2]
-  val neg2 = function[1]
-  val leq = new ConstantPredicateLabel(K.Identifier("<="), 2); addSymbol(leq)
-  val zero, one = variable
+  val meet = ConstantFunctionLabel.infix(K.Identifier("/\\"), 2); addSymbol(meet)
+  val join = ConstantFunctionLabel.infix(K.Identifier("\\/"), 2); addSymbol(join)
+  val neg2 = ConstantFunctionLabel(K.Identifier("¬"), 1); addSymbol(neg2)
+  val leq = ConstantPredicateLabel.infix(K.Identifier("<="), 2); addSymbol(leq)
+  val zero = Constant("0"); addSymbol(zero)
+  val one = Constant("1"); addSymbol(one)
 
   // ==============================================================================================
   // ================================= IMPLICIT CONVERSIONS =======================================
