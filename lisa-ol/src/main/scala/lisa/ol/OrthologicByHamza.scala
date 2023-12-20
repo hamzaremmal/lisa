@@ -37,7 +37,6 @@ object OrthologicByHamza extends lisa.Main {
   // ========================================== AXIOMS ============================================
   // ==============================================================================================
 
-  private val V6 = Axiom(x ==== !(!x))
   private val V8 = Axiom(!(x u y) ==== (!x n !y))
   private val V8p = Axiom(!(x n y) ==== (!x u !y))
 
@@ -55,6 +54,7 @@ object OrthologicByHamza extends lisa.Main {
   private val P7p = Axiom(!(!x) <= x)
   private val P8 = Axiom(x <= y ==> !y <= !x)
   private val P9 = Axiom((x n !x) <= 0)
+  private val P9p = Axiom(1 <= (x u !x))
 
   // ==============================================================================================
   // ======================================== LEMMAS ==============================================
@@ -62,31 +62,36 @@ object OrthologicByHamza extends lisa.Main {
 
   private val complementOfZero = Lemma(!0 ==== 1) {
 
-    val step1 = have(!0 <= 1) subproof {
+    val lhs = have(!0 <= 1) subproof {
       have(thesis) by Rewrite(P3p of (x := !0))
     }
 
-    val step2 = have(1 <= !0) subproof {
-      val step1 = have(((x n y) <= y) /\ (y <= (x u y))) by RightAnd(P5, P5p)
-      val step2 = have(((0 n !0) <= !0) /\ (!0 <= (0 u !0))) by Rewrite(step1 of (x := 0, y := !0))
-      val step3 = have((0 n !0) <= (0 u !0)) by Tautology.from(step2, P2 of (x := (0 n !0), y := !0, z := (0 u !0)))
-      sorry
+    val rhs = have(1 <= !0) subproof {
+      val step1 = have(0 <= !1) by Rewrite(P3 of (x := !1))
+      val step2 = have(!(!1) <= !0) by Tautology.from(step1, P8 of (x := 0, y := !1))
+      val step3 = have(1 <= !(!1)) by Rewrite(P7 of (x := 1))
+      val step4 = have((1 <= !(!1)) /\ (!(!1) <= !0)) by RightAnd(step3, step2)
+      have(thesis) by Tautology.from(step4, P2 of (x := 1, y := !(!1), z := !0))
     }
 
-    have(thesis) by RightAnd(step1, step2)
+    have(thesis) by RightAnd(lhs, rhs)
   }
 
   private val complementOfOne = Lemma(!1 ==== 0) {
 
-    val step1 = have(0 <= !1) subproof {
+    val lhs = have(0 <= !1) subproof {
       have(thesis) by Rewrite(P3 of (x := !1))
     }
 
-    val step2 = have(!1 <= 0) subproof {
-      sorry
+    val rhs = have(!1 <= 0) subproof {
+      val step1 = have(!0 <= 1) by Rewrite(P3p of (x := !0))
+      val step2 = have(!1 <= !(!0)) by Tautology.from(step1, P8 of (x := !0, y := 1))
+      val step3 = have(!(!0) <= 0) by Rewrite(P7p of (x := 0))
+      val step4 = have((!1 <= !(!0)) /\ (!(!0) <= 0)) by RightAnd(step2, step3)
+      have(thesis) by Tautology.from(step4, P2 of (x := !1, y := !(!0), z := 0))
     }
 
-    have(thesis) by RightAnd(step1, step2)
+    have(thesis) by RightAnd(lhs, rhs)
   }
 
   // ==============================================================================================
