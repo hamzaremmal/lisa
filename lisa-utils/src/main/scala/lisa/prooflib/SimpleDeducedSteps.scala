@@ -126,7 +126,13 @@ object SimpleDeducedSteps {
                    * p1  = ∀x.ψ ⊢ ψ[t/x]      LeftForall p0
                    * p2  = Γ ⊢ ψ[t/x], Δ      Cut s1, p1
                    */
-                  val newStep = K.SCSubproof(K.SCProof(IndexedSeq(p0, p1, p2), IndexedSeq(p.conclusion)), Seq(p.length - 1))
+                  val newStep = K.SCSubproof(
+                    K.SCProof(
+                      IndexedSeq(p0, p1, p2), 
+                      IndexedSeq(p.conclusion)
+                    ), 
+                    Seq(p.length - 1)
+                  )
                   (
                     p withNewSteps IndexedSeq(newStep),
                     in,

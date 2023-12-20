@@ -11,8 +11,6 @@ import scala.collection.mutable.Map as mMap
 object OrthologicWithAxiomsI2 extends lisa.Main:
 
 
-
-
   /** ORTHOLATTICE SYMBOLS **/
 
   // ortholattice elements
@@ -224,8 +222,6 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(s1, s1 of (x := y, y := x))
   }
 
-
-
   /** DERIVATION RULES **/
 
   val hyp = Theorem(S(L(x), R(x))) {
@@ -312,6 +308,8 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(lastStep, cut of (gamma := R(not(x))))
   }
 
+
+
   var log = false
 
   object RestateWithAxioms extends ProofTactic:
@@ -373,7 +371,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
         val goal: Sequent = axiomsS |- S(gamma1, delta1)
 
-        def proveWithHyp: proof.ProofTacticJudgement = TacticSubproof: // RM SubProof (constant folding the have ~)
+        def proveWithHyp: proof.ProofTacticJudgement = TacticSubproof:
           (gamma1, delta1) match
             case (L(x1), R(y)) if x1 == y =>
               have(goal) by Tautology.from(hyp of (x := x1))
@@ -608,17 +606,17 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   }
 
-
   val a1 = one <= (x n (not(x) u z))
 
   val testPaperExampleWithSomeHelp = Theorem(a1 |- one <= z) {
     val f1 = one <= (not(x) u z)
     val f2 = (not(x) u z) <= z
 
+    // NOTE not needed but usefull for testing
+
     val s1 = have(a1 |- f1) by RestateWithAxioms.apply // Ok
 
     val s2 = have(a1 |- f2) subproof {
-      // NOTE not needed but usefull for testing
 //      have((x n (not(x) u z)) <= x) by RestateWithAxioms.apply
 //      have(a1 |- one <= x) by RestateWithAxioms.apply // Ok
       have(thesis) by RestateWithAxioms.apply
@@ -627,6 +625,9 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   }
 
+  val testPaperExample = Theorem(a1 |- one <= z) {
+    have(thesis) by RestateWithAxioms.apply
+  }
 
 
 end OrthologicWithAxiomsI2
