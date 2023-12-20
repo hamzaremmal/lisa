@@ -57,6 +57,30 @@ object OrthologicByHamza extends lisa.Main {
   private val P9 = Axiom((x n !x) <= 0)
 
   // ==============================================================================================
+  // ======================================== LEMMAS ==============================================
+  // ==============================================================================================
+
+  val complementOfZero = Lemma(!0 ==== 1) {
+
+    val step1 = have(!zero <= 1) subproof {
+      have(thesis) by Rewrite(P3p of (x := !0))
+    }
+
+    val step2 = have(1 <= !zero) subproof {
+      val step1 = have(((x n y) <= y) /\ (y <= (x u y))) by RightAnd(P5, P5p)
+      val step2 = have(((0 n !zero) <= !zero) /\ (!zero <= (0 u !zero))) by Rewrite(step1 of (x := 0, y := !zero))
+      val step3 = have((0 n !zero) <= (0 u !zero)) by Tautology.from(step2, P2 of (x := (0 n !zero), y := !zero, z := (0 u !zero)))
+      sorry
+    }
+
+    have(thesis) by RightAnd(step1, step2)
+  }
+
+  val complementOfOne = Lemma(!1 ==== 0) {
+    sorry
+  }
+
+  // ==============================================================================================
   // ====================================== RULE: HYP =============================================
   // ==============================================================================================
 
@@ -75,7 +99,17 @@ object OrthologicByHamza extends lisa.Main {
 
   // xR /\ (xL, yL) |- yL
   val CUT_1_2 = Theorem((1 <= x) /\ (x <= !y) |- (y <= 0)) {
-    sorry
+    assume((1 <= x) /\ (x <= !y))
+    val step1 = have(!x <= !1) by Tautology.from(P8 of (x := 1, y := x))
+    val step2 = have(!1 <= 0) by Tautology.from(complementOfOne)
+    val step3 = have((!x <= !1) /\ (!1 <= 0)) by RightAnd(step1, step2)
+    val step4 = have(!x <= 0) by Tautology.from(step3, P2 of (x := !x, y := !1, z := 0))
+    val step5 = have(!(!y) <= !x) by Tautology.from(P8 of (y := !y))
+    val step6 = have(y <= !(!y)) by Tautology.from(P7 of (x := y))
+    val step7 = have((y <= !(!y)) /\ (!(!y) <= !x)) by RightAnd(step5, step6)
+    val step8 = have(y <= !x) by Tautology.from(step7, P2 of (x := y, y := !(!y), z := !x))
+    val step9 = have((y <= !x) /\ (!x <= 0)) by RightAnd(step8, step4)
+    have(thesis) by Tautology.from(step9, P2 of (x := y, y := !x, z := 0))
   }
 
   // xR /\ (xL, yR) |- yR
@@ -100,7 +134,17 @@ object OrthologicByHamza extends lisa.Main {
 
   // (yR, xR) /\ xL |- yR
   val CUT_3_1 = Theorem((!y <= x) /\ (x <= 0) |- 1 <= y) {
-    sorry
+    assume((!y <= x) /\ (x <= 0))
+    val step1 = have(!x <= !(!y)) by Tautology.from(P8 of (x := !y, y := x))
+    val step2 = have(!(!y) <= y) by Tautology.from(P7p of (x := y))
+    val step3 = have((!x <= !(!y)) /\ (!(!y) <= y)) by RightAnd(step1, step2)
+    val step4 = have(!x <= y) by Tautology.from(step3, P2 of (x := !x, y := !(!y), z := y))
+    val step5 = have(!0 <= !x) by Tautology.from(P8 of (y := 0))
+    val step6 = have((!0 <= !x) /\ (!x <= y)) by RightAnd(step4, step5)
+    val step7 = have(!0 <= y) by Tautology.from(step6, P2 of (x := !0, y := !x, z := y))
+    val step8 = have(1 <= !0) by Tautology.from(complementOfZero)
+    val step9 = have((1 <= !0) /\ (!0 <= y)) by RightAnd(step8, step7)
+    have(thesis) by Tautology.from(step9, P2 of (x := 1, y := !0, z := y))
   }
 
   // (yR, xR) /\ (xL, zL) |- (yR, zL)
@@ -174,7 +218,14 @@ object OrthologicByHamza extends lisa.Main {
 
   // xR |- xR, yR
   private val WEAKEN_3_3 = Theorem(1 <= x |- !x <= y) {
-    sorry
+    assume(1 <= x)
+    val step1 = have(!x <= !1) by Tautology.from(P8 of (x := 1, y := x))
+    val step2 = have(!1 <= 0) by Tautology.from(complementOfOne)
+    val step3 = have((!x <= !1) /\ (!1 <= 0)) by RightAnd(step1, step2)
+    val step4 = have(!x <= 0) by Tautology.from(step3, P2 of (x := !x, y := !1, z := 0))
+    val step5 = have(0 <= y) by Tautology.from(P3 of (x := y))
+    val step6 = have((!x <= 0) /\ (0 <= y)) by RightAnd(step4, step5)
+    have(thesis) by Tautology.from(step6, P2 of (x := !x, y := 0, z := y))
   }
 
   // ==============================================================================================
@@ -295,7 +346,11 @@ object OrthologicByHamza extends lisa.Main {
 
   // xR |- (!x)L <=> 1 <= x |- !x <= 0
   private val LEFT_NOT_3 = Theorem(1 <= x |- !x <= 0) {
-    sorry
+    assume(1 <= x)
+    val step1 = have(!x <= !1) by Tautology.from(P8 of (x := 1, y := x))
+    val step2 = have(!1 <= 0) by Tautology.from(complementOfOne)
+    val step3 = have((!x <= !1) /\ (!1 <= 0)) by RightAnd(step1, step2)
+    have(thesis) by Tautology.from(step3, P2 of (x := !x, y := !1, z := 0))
   }
 
   // ==============================================================================================
@@ -314,7 +369,11 @@ object OrthologicByHamza extends lisa.Main {
 
   // xL |- (!x)R <=> x <= 0 |- 1 <= !x
   private val RIGHT_NOT_3 = Theorem(x <= 0 |- 1 <= !x) {
-    sorry
+    assume(x <= 0)
+    val step1 = have(!0 <= !x) by Tautology.from(P8 of (y := 0))
+    val step2 = have(1 <= !0) by Tautology.from(complementOfZero)
+    val step3 = have((1 <= !0) /\ (!0 <= !x)) by RightAnd(step2, step1)
+    have(thesis) by Tautology.from(step3, P2 of (x := 1, y := !0, z := !x))
   }
 
   // NOTE: WE DON'T NEED TO PROOF THE Ax Rule, NOT SURE
