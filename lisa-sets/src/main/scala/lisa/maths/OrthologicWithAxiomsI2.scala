@@ -66,41 +66,13 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(lastStep, p7b, p2 of (x := not(one), y := not(not(x)), z := x))
   }
 
-  val notOne = Theorem((not(one) <= zero) /\ (zero <= not(one))) {
-    have(thesis) by Tautology.from(p3c of (x := zero), p3a of (x := not(one)))
-  }
-
-
-  val notEquiv = Theorem((x <= not(y)) <=> (y <= not(x))) {
-    val s1 = have((x <= not(y)) ==> (y <= not(x))) by Tautology.from(
-      p8 of (y := not(y)), // (x <= not(y)) ==> (not(not(y)) <= not(x))
-      p7a of (x := y), // y <= not(not(y))
-      p2 of(x := y, y := not(not(y)), z := not(x))
-    )
-    have(thesis) by Tautology.from(s1, s1 of(x := y, y := x))
-  }
-
-  val p8Cons = Theorem((not(y) <= not(x)) ==> (x <= y)) {
-    have(thesis) by Tautology.from(
-      p8 of(x := not(y), y := not(x)), // not(not(x)) <= not(not(y))
-      p7a, p7b of (x := y), // x <= not(not(x)) /\ not(not(y)) <= y
-      p2 of(y := not(not(x)), z := not(not(y))), p2 of(y := not(not(y)), z := y),
-    )
-  }
 
   val notnot = Theorem((x <= not(not(y))) <=> (x <= y)) {
-    have(thesis) by Tautology.from(
-      p7a of (x := y), p2 of (y := not(not(y)), z := y),
-      p7b of (x := y), p2 of (z := not(not(y)))
-    )
+    val s1 = have((x <= not(not(y))) ==> (x <= y)) by Tautology.from(p7b of (x := y), p2 of (y := not(not(y)), z := y))
+    val s2 = have((x <= y) ==> (x <= not(not(y)))) by Tautology.from(p7a of (x := y), p2 of (z := not(not(y))))
+    have(thesis) by Tautology.from(s1, s2)
   }
 
-  val joinCommut = Theorem((y u x) <= (x u y)) {
-    have(thesis) by Tautology.from(p4b, p5b, p6b of (x := y, y := x, z := (x u y)))
-  }
-  val meetCommut = Theorem((x n y) <= (y n x)) {
-    have(thesis) by Tautology.from(p4a, p5a, p6a of (x := (x n y), z := x))
-  }
 
 
   /** ORTHOLOGIC SEQUENT ENCODING **/
@@ -131,10 +103,16 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
 
   val commutS = Theorem(S(gamma, delta) <=> S(delta, gamma)) {
-    have(thesis) by Tautology.from(
-      notEquiv of (x := I(gamma), y := I(delta)),
-      IS, IS of (gamma := delta, delta := gamma)
-    )
+    val impl = have(S(gamma, delta) ==> S(delta, gamma)) subproof {
+      assume(S(gamma, delta))
+      val (g, d) = (I(gamma), I(delta))
+      have(g <= not(d)) by Tautology.from(IS)
+      val s1 = have(not(not(d)) <= not(g)) by Tautology.from(lastStep, p8 of (x := g, y := not(d)))
+      val s2 = have(d <= not(not(d))) by Tautology.from(p7a of (x := d))
+      have(d <= not(g)) by Tautology.from(s1, s2, p2 of (x := d, y := not(not(d)), z := not(g)))
+      have(thesis) by Tautology.from(lastStep, IS of (gamma := delta, delta := gamma))
+    }
+    have(thesis) by Tautology.from(impl, impl of (gamma := delta, delta := gamma))
   }
 
   val SFR = Theorem(S(gamma, R(y)) <=> (I(gamma) <= y)) {
@@ -148,7 +126,6 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     thenHave(thesis) by Substitution.ApplyRules(IL)
   }
 
-  // TODO use above ?
   val SLR = Theorem(S(L(x), R(y)) <=> (x <= y)) {
     have(S(L(x), R(y)) <=> (I(L(x)) <= NI(R(y)))) by Restate.from(IS of (gamma := L(x), delta := R(y)))
     thenHave(S(L(x), R(y)) <=> (x <= not(not(y)))) by Substitution.ApplyRules(IL, IR of (x := y))
@@ -181,9 +158,12 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
   val SNN = Theorem(S(N, N) <=> (one <= zero)) {
+    val s1 = have((one <= not(one)) ==> (one <= zero)) by
+      Tautology.from(p3c of (x := zero), p2 of (x := one, y := not(one), z := zero))
+    val s2 = have((one <= zero) ==> (one <= not(one))) by
+      Tautology.from(p3a of (x := not(one)), p2 of (x := one, y := zero, z := not(one)))
     have(S(N, N) <=> (one <= not(one))) by Substitution.ApplyRules(IN)(IS of (gamma := N, delta := N))
-    have(thesis) by Tautology.from(lastStep, notOne,
-      p2 of (x := one, y := not(one), z := zero), p2 of (x := one, y := zero, z := not(one)))
+    have(thesis) by Tautology.from(lastStep, s1, s2)
   }
 
 
