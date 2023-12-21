@@ -103,6 +103,10 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     }
     have(thesis) by Tautology.from(impl, impl of (gamma := delta, delta := gamma))
   }
+  val commutS2 = Theorem(S(gamma, delta) |- S(delta, gamma)) { // AR
+    have(thesis) by Tautology.from(commutS)
+  }
+
 
   val SFR = Theorem(S(gamma, R(y)) <=> (I(gamma) <= y)) {
     have(S(gamma, R(y)) <=> (I(gamma) <= NI(R(y)))) by Tautology.from(IS of(delta := R(y)))
@@ -160,7 +164,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(p1, SLR of (y := x))
   }
 
-  val cut = Theorem((S(gamma, R(x)), S(L(x), delta)) |- S(gamma, delta)) {
+  val cut = Theorem(S(gamma, R(x)) /\ S(L(x), delta) |- S(gamma, delta)) {
     assume(S(gamma, R(x)) /\ S(L(x), delta))
     val s1 = have(I(gamma) <= x) by Tautology.from(SFR of (y := x))
     val s2 = have(x <= NI(delta)) by Tautology.from(SLF)
@@ -199,7 +203,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(leftAnd1, leftAnd2)
   }
 
-  val leftOr = Theorem((S(L(x), delta), S(L(y), delta)) |- S(L(x u y), delta)) {
+  val leftOr = Theorem(S(L(x), delta) /\ S(L(y), delta) |- S(L(x u y), delta)) {
     assume(S(L(x), delta) /\ S(L(y), delta))
     have((x <= NI(delta)) /\ (y <= NI(delta))) by Tautology.from(SLF, SLF of (x := y))
     have((x u y) <= NI(delta)) by Tautology.from(lastStep, p6b of (z := NI(delta)))
@@ -212,7 +216,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(lastStep, cut of (delta := L(not(x))))
   }
 
-  val rightAnd = Theorem((S(gamma, R(x)), S(gamma, R(y))) |- S(gamma, R(x n y))) {
+  val rightAnd = Theorem(S(gamma, R(x)) /\ S(gamma, R(y)) |- S(gamma, R(x n y))) {
     assume(S(gamma, R(x)) /\ S(gamma, R(y)))
     have((I(gamma) <= x) /\ (I(gamma) <= y)) by Tautology.from(SFR of (y := x), SFR)
     have(I(gamma) <= (x n y)) by Tautology.from(lastStep, p6a of (x := I(gamma), y := x, z := y))
@@ -318,9 +322,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
           // Hyp
           case (L(x1), R(y)) if x1 == y =>
-//            have(goal) by Tautology.from(hyp of (x := x1))
-            have(() |- goal.right) by Restate.from(hyp of (x := x1))
-            thenHave(goal) by Weakening
+            have(goal) by Weakening(hyp of (x := x1))
 
           // Ax
           case (gamma1, delta) if axiomsS.contains(S(gamma1, delta1)) =>
@@ -328,89 +330,58 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
           // Weaken
           case (gamma1, delta1) if gamma1 != N && delta1 != N && canProve(gamma1, N) =>
-            // OK
-            val s0 = prove(gamma1, N)
-            val s2 = have(S(gamma1, N) |- S(gamma1, delta1)) by Restate.from(weaken of (gamma := gamma1, delta := delta1))
-            have(goal) by Cut(have(s0), s2)
-
             have(goal) by Cut(have(prove(gamma1, N)), weaken of (gamma := gamma1, delta := delta1))
 
           // Contration
           case (gamma1, N) if canProve(gamma1, gamma1) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, gamma1)),
-              contraction of (gamma := gamma1),
-            )
+            have(goal) by Cut(have(prove(gamma1, gamma1)), contraction of (gamma := gamma1))
 
           // LeftNot
           case (gamma1, L(not(x1))) if canProve(gamma1, R(x1)) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, R(x1))),
-              leftNot of (gamma := gamma1, x := x1),
-            )
+            have(goal) by Cut(have(prove(gamma1, R(x1))), leftNot of (gamma := gamma1, x := x1))
 
           // LeftAnd
           case (L(x1 n y1), delta1) if canProve(L(x1), delta1) =>
-            have(goal) by Tautology.from(
-              have(prove(L(x1), delta1)),
-              leftAnd of(x := x1, y := y1, delta := delta1)
-            )
+            val leftAnd1 = have(S(L(x1), delta1) |- S(L(x1 n y1), delta1)) by Weakening(leftAnd of(x := x1, y := y1, delta := delta1))
+            have(goal) by Cut(have(prove(L(x1), delta1)), leftAnd1)
           case (L(x1 n y1), delta1) if canProve(L(y1), delta1) =>
-            have(goal) by Tautology.from(
-              have(prove(L(y1), delta1)),
-              leftAnd of(x := x1, y := y1, delta := delta1)
-            )
+            val leftAnd2 = have(S(L(y1), delta1) |- S(L(x1 n y1), delta1)) by Weakening(leftAnd of(x := x1, y := y1, delta := delta1))
+            have(goal) by Cut(have(prove(L(y1), delta1)), leftAnd2)
 
           // LeftOr
           case (L(x1 u y1), delta1) if canProve(L(x1), delta1) && canProve(L(y1), delta1) =>
-            have(goal) by Tautology.from(
-              have(prove(L(x1), delta1)), have(prove(L(y1), delta1)),
-              leftOr of(x := x1, y := y1, delta := delta1)
-            )
+            have(axiomsS |- S(L(x1), delta1) /\ S(L(y1), delta1)) by RightAnd(have(prove(L(x1), delta1)), have(prove(L(y1), delta1)))
+            have(goal) by Cut(lastStep, leftOr of(x := x1, y := y1, delta := delta1))
 
           // RightNot
           case (R(not(x1)), delta1) if canProve(L(x1), delta1) =>
-            have(goal) by Tautology.from(
-              have(prove(L(x1), delta1)),
-              rightNot of(delta := delta1, x := x1),
-            )
+            have(goal) by Cut(have(prove(L(x1), delta1)), rightNot of(delta := delta1, x := x1))
 
           // RightAnd
           case (gamma1, R(x1 n y1)) if canProve(gamma1, R(x1)) && canProve(gamma1, R(y1)) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, R(x1))), have(prove(gamma1, R(y1))),
-              rightAnd of(x := x1, y := y1, gamma := gamma1)
-            )
+            have(axiomsS |- S(gamma1, R(x1)) /\ S(gamma1, R(y1))) by RightAnd(have(prove(gamma1, R(x1))), have(prove(gamma1, R(y1))))
+            have(goal) by Cut(lastStep, rightAnd of(x := x1, y := y1, gamma := gamma1))
 
           // RightOr
           case (gamma1, R(x1 u y1)) if canProve(gamma1, R(x1)) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, R(x1))),
-              rightOr of(x := x1, y := y1, gamma := gamma1),
-            )
+            val rightOr1 = have(S(gamma1, R(x1)) |- S(gamma1, R(x1 u y1))) by Weakening(rightOr of(x := x1, y := y1, gamma := gamma1))
+            have(goal) by Cut(have(prove(gamma1, R(x1))), rightOr1)
           case (gamma1, R(x1 u y1)) if canProve(gamma1, R(y1)) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, R(y1))),
-              rightOr of(x := x1, y := y1, gamma := gamma1),
-            )
+            val rightOr2 = have(S(gamma1, R(y1)) |- S(gamma1, R(x1 u y1))) by Weakening(rightOr of(x := x1, y := y1, gamma := gamma1))
+            have(goal) by Cut(have(prove(gamma1, R(y1))), rightOr2)
 
           // AxCut
           case (gamma1, delta1) if axFormulas.exists(x1 => canProve(gamma1, R(x1)) && canProve(L(x1), delta1)) =>
             LazyList.from(axFormulas)
               .map { x1 => (x1, (prove(gamma1, R(x1)), prove(L(x1), delta1))) }
               .collectFirst { case (x1, (s1, s2)) if s1.isValid && s2.isValid =>
-                have(goal) by Tautology.from(
-                  have(s1), have(s2),
-                  cut of(gamma := gamma1, x := x1, delta := delta1)
-                )
+                have(axiomsS |- S(gamma1, R(x1)) /\ S(L(x1), delta1)) by RightAnd(have(s1), have(s2))
+                have(goal) by Cut(lastStep, cut of(gamma := gamma1, x := x1, delta := delta1))
               }.get
 
           // Try by flipping delta1, gamma1
           case (gamma1, delta1) if canProve(delta1, gamma1) =>
-            have(goal) by Tautology.from(
-              have(prove(delta1, gamma1)),
-              commutS of(gamma := gamma1, delta := delta1)
-            )
+            have(goal) by Cut(have(prove(delta1, gamma1)), commutS2 of (gamma := delta1, delta := gamma1))
 
           case _ => return proof.InvalidProofTactic(s"No rules applied to $gamma1, $delta1")
 
@@ -419,6 +390,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
       val left1 = if left == `1` then N else L(left)
       val right1 = if right == `0` then N else R(right)
 
+      // TODO remove Tautology.from
       prove(left1, right1) andThen2 { lastStep => // axiomsS |- S(left1, right1)
         val s1 = have(axiomsS |- left <= right) by Tautology.from(lastStep,
           SLR of(x := left, y := right),
@@ -497,6 +469,10 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
   val testP9b = Theorem(`1` <= (x u not(x))) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  val test10 = Theorem(((x <= y), (y <= z)) |- (x <= z)) {
     have(thesis) by RestateWithAxioms.apply
   }
 
