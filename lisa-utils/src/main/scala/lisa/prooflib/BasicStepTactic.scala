@@ -65,12 +65,16 @@ object BasicStepTactic {
       val phiK = phi.underlying
 
       if (!K.contains(leftSequent.right, phiK))
+        println("Right-hand side of first premise does not contain φ as claimed.")
         proof.InvalidProofTactic("Right-hand side of first premise does not contain φ as claimed.")
       else if (!K.contains(rightSequent.left, phiK))
+        println(s"Left-hand side of second premise does not contain $phi as claimed.")
         proof.InvalidProofTactic("Left-hand side of second premise does not contain φ as claimed.")
       else if (!K.isSameSet(botK.left + phiK, leftSequent.left ++ rightSequent.left) || (leftSequent.left.contains(phiK) && !botK.left.contains(phiK)))
+        println("Left-hand side of conclusion + φ is not the union of the left-hand sides of the premises.")
         proof.InvalidProofTactic("Left-hand side of conclusion + φ is not the union of the left-hand sides of the premises.")
       else if (!K.isSameSet(botK.right + phiK, leftSequent.right ++ rightSequent.right) || (rightSequent.right.contains(phiK) && !botK.right.contains(phiK)))
+        println("Right-hand side of conclusion + φ is not the union of the right-hand sides of the premises.")
         proof.InvalidProofTactic("Right-hand side of conclusion + φ is not the union of the right-hand sides of the premises.")
       else
         proof.ValidProofTactic(bot, Seq(K.Cut(botK, -1, -2, phiK)), Seq(prem1, prem2))
