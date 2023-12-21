@@ -22,27 +22,23 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val n = ConstantFunctionLabel("n", 2)
   val not = ConstantFunctionLabel("¬", 1) // RN
 
-  val zero = Constant("0")
-  val one = Constant("1")
+  val `0` = Constant("0")
+  val `1` = Constant("1")
 
-  Set(<=, u, n, not, zero, one) foreach addSymbol
+  Set(<=, u, n, not, `0`, `1`) foreach addSymbol
 
-  extension (left: Term) // FIX
-//    def <=(right: Term): Formula = OrthologicWithAxiomsI2.<=(left, right)
-//    def u(right: Term): Term = OrthologicWithAxiomsI2.u(left, right)
-//    def n(right: Term): Term = OrthologicWithAxiomsI2.n(left, right)
+  extension (left: Term)
     def <=(right: Term): Formula = AppliedPredicate(OrthologicWithAxiomsI2.<=, Seq(left, right))
     def u(right: Term): Term = AppliedFunction(OrthologicWithAxiomsI2.u, Seq(left, right))
     def n(right: Term): Term = AppliedFunction(OrthologicWithAxiomsI2.n, Seq(left, right))
-
 
 
   /** ORTHOLATTICE AXIOMS **/
 
   val p1 = Axiom(x <= x)
   val p2 = Axiom((x <= y) /\ (y <= z) ==> (x <= z))
-  val p3a = Axiom(zero <= x)
-  val p3b = Axiom(x <= one)
+  val p3a = Axiom(`0` <= x)
+  val p3b = Axiom(x <= `1`)
   val p4a = Axiom((x n y) <= x)
   val p4b = Axiom(x <= (x u y))
   val p5a = Axiom((x n y) <= y)
@@ -52,22 +48,19 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   val p7a = Axiom(x <= not(not(x)))
   val p7b = Axiom(not(not(x)) <= x)
   val p8 = Axiom((x <= y) ==> (not(y) <= not(x)))
-  val p9a = Axiom((x n not(x)) <= zero)
-  val p9b = Axiom(one <= (x u not(x))) // FIX not used !
+  val p9a = Axiom((x n not(x)) <= `0`)
+  val p9b = Axiom(`1` <= (x u not(x))) // NOTE not needed
 
 
   // REVIEW
 
-  // x <= 0 ==> x <= y
-
-  val p3c = Theorem(not(one) <= x) {
-    have(not(x) <= one) by Restate.from(p3b of (x := not(x)))
-    have(not(one) <= not(not(x))) by Tautology.from(lastStep, p8 of (x := not(x), y := one))
-    have(thesis) by Tautology.from(lastStep, p7b, p2 of (x := not(one), y := not(not(x)), z := x))
+  val p3c = Lemma(not(`1`) <= x) {
+    have(not(x) <= `1`) by Restate.from(p3b of (x := not(x)))
+    have(not(`1`) <= not(not(x))) by Tautology.from(lastStep, p8 of (x := not(x), y := `1`))
+    have(thesis) by Tautology.from(lastStep, p7b, p2 of (x := not(`1`), y := not(not(x)), z := x))
   }
 
-
-  val notnot = Theorem((x <= not(not(y))) <=> (x <= y)) {
+  val notnot = Lemma((x <= not(not(y))) <=> (x <= y)) {
     val s1 = have((x <= not(not(y))) ==> (x <= y)) by Tautology.from(p7b of (x := y), p2 of (y := not(not(y)), z := y))
     val s2 = have((x <= y) ==> (x <= not(not(y)))) by Tautology.from(p7a of (x := y), p2 of (z := not(not(y))))
     have(thesis) by Tautology.from(s1, s2)
@@ -89,17 +82,13 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
   Set(L, R, N, S, I) foreach addSymbol
 
-
   def S1(t: Term): Formula = S(t, N) \/ S(N, t)
-  // IMPROVE use more
   def NI(t: Term): Term = not(I(t))
 
-
-  // RN
   val IS = Axiom(S(gamma, delta) <=> (I(gamma) <= NI(delta)))
   val IL = Axiom(I(L(x)) === x)
   val IR = Axiom(I(R(x)) === not(x))
-  val IN = Axiom(I(N) === one)
+  val IN = Axiom(I(N) === `1`)
 
 
   val commutS = Theorem(S(gamma, delta) <=> S(delta, gamma)) {
@@ -116,7 +105,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   }
 
   val SFR = Theorem(S(gamma, R(y)) <=> (I(gamma) <= y)) {
-    have(S(gamma, R(y)) <=> (I(gamma) <= not(I(R(y))))) by Tautology.from(IS of(delta := R(y)))
+    have(S(gamma, R(y)) <=> (I(gamma) <= NI(R(y)))) by Tautology.from(IS of(delta := R(y)))
     thenHave(S(gamma, R(y)) <=> (I(gamma) <= not(not(y)))) by Substitution.ApplyRules(IR of (x := y))
     have(thesis) by Tautology.from(lastStep, notnot of (x := I(gamma)))
   }
@@ -143,26 +132,24 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(lastStep, notnot of (x := not(x)))
   }
 
-  val SLN = Theorem(S(L(x), N) <=> (x <= zero)) {
+  val SLN = Theorem(S(L(x), N) <=> (x <= `0`)) {
     have(S(L(x), N) <=> (x <= NI(N))) by Restate.from(SLF of (delta := N))
-    thenHave(S(L(x), N) <=> (x <= not(one))) by Substitution.ApplyRules(IN)
+    thenHave(S(L(x), N) <=> (x <= not(`1`))) by Substitution.ApplyRules(IN)
     have(thesis) by Tautology.from(lastStep,
-      p3c of (x := zero), p2 of (y := not(one), z := zero),
-      p3a of (x := not(one)), p2 of (y := zero, z := not(one)),
+      p3c of (x := `0`), p2 of (y := not(`1`), z := `0`),
+      p3a of (x := not(`1`)), p2 of (y := `0`, z := not(`1`)),
     )
   }
 
-  val SNR = Theorem(S(N, R(y)) <=> (one <= y)) {
+  val SNR = Theorem(S(N, R(y)) <=> (`1` <= y)) {
     have(S(N, R(y)) <=> (I(N) <= y)) by Restate.from(SFR of (gamma := N))
     thenHave(thesis) by Substitution.ApplyRules(IN)
   }
 
-  val SNN = Theorem(S(N, N) <=> (one <= zero)) {
-    val s1 = have((one <= not(one)) ==> (one <= zero)) by
-      Tautology.from(p3c of (x := zero), p2 of (x := one, y := not(one), z := zero))
-    val s2 = have((one <= zero) ==> (one <= not(one))) by
-      Tautology.from(p3a of (x := not(one)), p2 of (x := one, y := zero, z := not(one)))
-    have(S(N, N) <=> (one <= not(one))) by Substitution.ApplyRules(IN)(IS of (gamma := N, delta := N))
+  val SNN = Theorem(S(N, N) <=> (`1` <= `0`)) {
+    val s1 = have((`1` <= not(`1`)) ==> (`1` <= `0`)) by Tautology.from(p3c of (x := `0`), p2 of (x := `1`, y := not(`1`), z := `0`))
+    val s2 = have((`1` <= `0`) ==> (`1` <= not(`1`))) by Tautology.from(p3a of (x := not(`1`)), p2 of (x := `1`, y := `0`, z := not(`1`)))
+    have(S(N, N) <=> (`1` <= not(`1`))) by Substitution.ApplyRules(IN)(IS of (gamma := N, delta := N))
     have(thesis) by Tautology.from(lastStep, s1, s2)
   }
 
@@ -180,29 +167,21 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by Tautology.from(s1, s2, p2 of (x := I(gamma), y := x, z := NI(delta)), IS)
   }
 
-  val weaken = Theorem(S1(gamma) |- S(gamma, delta)) {
+  val weaken = Theorem(S(gamma, N) |- S(gamma, delta)) {
     assume(S1(gamma))
     have(I(gamma) <= NI(N)) by Tautology.from(commutS of (delta := N), IS of (delta := N))
-    val s1 = thenHave(I(gamma) <= not(one)) by Substitution.ApplyRules(IN)
-    val s2 = have(not(one) <= NI(delta)) by Tautology.from(p3c of (x := NI(delta)))
-    have(thesis) by Tautology.from(s1, s2, p2 of (x := I(gamma), y := not(one), z := NI(delta)), IS)
+    val s1 = thenHave(I(gamma) <= not(`1`)) by Substitution.ApplyRules(IN)
+    val s2 = have(not(`1`) <= NI(delta)) by Tautology.from(p3c of (x := NI(delta)))
+    have(thesis) by Tautology.from(s1, s2, p2 of (x := I(gamma), y := not(`1`), z := NI(delta)), IS)
   }
 
   val contraction = Theorem(S(gamma, gamma) |- S(gamma, N)) {
     assume(S(gamma, gamma))
     val G = I(gamma)
-
     have(G <= not(G)) by Tautology.from(IS of (delta := gamma))
     have(G <= (G n not(G))) by Tautology.from(lastStep, p1 of (x := G), p6a of (x := G, y := G, z := not(G)))
-
-//    val s1 = have((G n not(G)) <= zero) by Restate.from(p9a of (x := G))
-//    val s2 = have(zero <= not(one)) by Restate.from(p3a of (x := not(one))) // AR
-//    have(G <= not(one)) by Tautology.from(
-//      s1, p2 of (x := G, y := zero, z := not(one)), ???
-//    )
-
-    have(G <= zero) by Tautology.from(lastStep, p9a of (x := G), p2 of (x := G, y := (G n not(G)), z := zero))
-    have(G <= not(one)) by Tautology.from(lastStep, p3a of (x := not(one)), p2 of (x := G, y := zero, z := not(one)))
+    have(G <= `0`) by Tautology.from(lastStep, p9a of (x := G), p2 of (x := G, y := (G n not(G)), z := `0`))
+    have(G <= not(`1`)) by Tautology.from(lastStep, p3a of (x := not(`1`)), p2 of (x := G, y := `0`, z := not(`1`)))
     thenHave(I(gamma) <= NI(N)) by Substitution.ApplyRules(IN)
     have(thesis) by Tautology.from(lastStep, IS of (delta := N))
   }
@@ -289,9 +268,9 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
       // IMPROVE refactor common
       val axiomsS: Set[Formula] = axioms.toSet.collect {
-        case (`one` <= `zero`) => S(N,       N       )
-        case (`one` <= right ) => S(N,       R(right))
-        case (left  <= `zero`) => S(L(left), N       )
+        case (`1` <= `0`) => S(N,       N       )
+        case (`1` <= right ) => S(N,       R(right))
+        case (left  <= `0`) => S(L(left), N       )
         case (left  <= right ) => S(L(left), R(right))
       }
 
@@ -339,7 +318,9 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
           // Hyp
           case (L(x1), R(y)) if x1 == y =>
-            have(goal) by Tautology.from(hyp of (x := x1))
+//            have(goal) by Tautology.from(hyp of (x := x1))
+            have(() |- goal.right) by Restate.from(hyp of (x := x1))
+            thenHave(goal) by Weakening
 
           // Ax
           case (gamma1, delta) if axiomsS.contains(S(gamma1, delta1)) =>
@@ -347,10 +328,12 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
           // Weaken
           case (gamma1, delta1) if gamma1 != N && delta1 != N && canProve(gamma1, N) =>
-            have(goal) by Tautology.from(
-              have(prove(gamma1, N)),
-              weaken of (gamma := gamma1, delta := delta1),
-            )
+            // OK
+            val s0 = prove(gamma1, N)
+            val s2 = have(S(gamma1, N) |- S(gamma1, delta1)) by Restate.from(weaken of (gamma := gamma1, delta := delta1))
+            have(goal) by Cut(have(s0), s2)
+
+            have(goal) by Cut(have(prove(gamma1, N)), weaken of (gamma := gamma1, delta := delta1))
 
           // Contration
           case (gamma1, N) if canProve(gamma1, gamma1) =>
@@ -433,8 +416,8 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
 
       end proveNoC
 
-      val left1 = if left == one then N else L(left)
-      val right1 = if right == zero then N else R(right)
+      val left1 = if left == `1` then N else L(left)
+      val right1 = if right == `0` then N else R(right)
 
       prove(left1, right1) andThen2 { lastStep => // axiomsS |- S(left1, right1)
         val s1 = have(axiomsS |- left <= right) by Tautology.from(lastStep,
@@ -443,9 +426,9 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
         )
         have(axioms |- left <= right) by Tautology.from(
           s1 +: axioms.collect {
-            case (`one` <= `zero`) => SNN
-            case (`one` <= r) => SNR of (y := r)
-            case (l <= `zero`) => SLN of (x := l)
+            case (`1` <= `0`) => SNN
+            case (`1` <= r) => SNR of (y := r)
+            case (l <= `0`) => SLN of (x := l)
             case (l <= r) => SLR of (x := l, y := r)
           } *
         )
@@ -466,7 +449,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by RestateWithAxioms.from()
   }
 
-  val test2a = Theorem((x n (not(x))) <= zero) {
+  val test2a = Theorem((x n (not(x))) <= `0`) {
     have(thesis) by RestateWithAxioms.apply
   }
 
@@ -486,14 +469,14 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   }
 
-  val test5 = Theorem(one <= x |- not(x) <= zero) {
+  val test5 = Theorem(`1` <= x |- not(x) <= `0`) {
     have(thesis) by RestateWithAxioms.apply
   }
 
-  val a1 = one <= (x n (not(x) u z))
+  val a1 = `1` <= (x n (not(x) u z))
 
-  val testPaperExampleWithSomeHelp = Theorem(a1 |- one <= z) {
-    val f1 = one <= (not(x) u z)
+  val testPaperExampleWithSomeHelp = Theorem(a1 |- `1` <= z) {
+    val f1 = `1` <= (not(x) u z)
     val f2 = (not(x) u z) <= z
 
     // NOTE not needed but usefull for testing
@@ -509,9 +492,15 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   }
 
-  val testPaperExample = Theorem(a1 |- one <= z) {
+  val testPaperExample = Theorem(a1 |- `1` <= z) {
     have(thesis) by RestateWithAxioms.apply
   }
+
+  val testP9b = Theorem(`1` <= (x u not(x))) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  // TODO test with multiple axioms
 
 
 end OrthologicWithAxiomsI2
