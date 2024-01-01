@@ -327,7 +327,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
             r
 
       // TODO RM can use Tautology (exp) in prove ?
-      // proove () |- S(gamma, delta) if can
+      // proove axiomS |- S(gamma, delta) if can
       def proveNoC(using proof: lib.Proof)(gamma1: Term, delta1: Term): proof.ProofTacticJudgement = TacticSubproof:
         val goal: Sequent = axiomsS |- S(gamma1, delta1)
         (gamma1, delta1) match
@@ -344,7 +344,7 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
           case (gamma1, delta1) if gamma1 != N && delta1 != N && proved(gamma1, N) =>
             have(goal) by Cut(have(prove(gamma1, N)), weaken of (gamma := gamma1, delta := delta1))
 
-          // Contration
+          // Contraction
           case (gamma1, N) if proved(gamma1, gamma1) =>
             have(goal) by Cut(have(prove(gamma1, gamma1)), contraction of (gamma := gamma1))
 
