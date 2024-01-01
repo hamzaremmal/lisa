@@ -25,16 +25,15 @@ object OrthologicWithAxiomsST extends lisa.Main:
     def n(right: Term): Term = app(OrthologicWithAxiomsST.n, pair(left, right))
     def u(right: Term): Term = app(OrthologicWithAxiomsST.u, pair(left, right))
 
-  // AR needs inline ?
+  // RN ; AR needs inline ?
   def /(t: Term): Term = app(OrthologicWithAxiomsST.not, t)
 
 
 //  inline def forallInS(x: Variable, f: Formula): Formula = ∀(x, (x ∈ S) ==> f)
   inline def ∀!(x: Variable, f: Formula) = forallInU(x)(f)
 
-  def forallInU(xs: Variable*)(f: Formula): Formula = xs match
-    case Seq() => f
-    case x +: xs => ∀(x, (x ∈ U) ==> forallInU(xs*)(f))
+  def forallInU(xs: Variable*)(f: Formula): Formula =
+    xs.foldRight(f) { (x, g) => ∀(x, (x ∈ U) ==> g) }
 
 
   // ASK type-checking ?
@@ -86,6 +85,38 @@ object OrthologicWithAxiomsST extends lisa.Main:
 //    p9a(U, <=, n, not, `0`), p9b(U, <=, u, not, `1`)
   ))
 
+  object SimpleInstantiateForallIn extends ProofTactic:
+
+    def apply1(using lib: library.type, proof: lib.Proof)
+              (U: F.Variable)(x: F.Variable)
+              (premise: proof.Fact)(bot: F.Sequent): proof.ProofTacticJudgement =
+      require(bot.right.size == 1)
+
+      val bot1 = bot.left |- (x ∈ U) ==> bot.right.head
+
+      TacticSubproof:
+        val s1 = have(bot1) by InstantiateForall(x)(premise)
+        have(bot) by Tautology.from(s1) // AR !!
+    // TODO err messages
+
+    end apply1
+
+
+    def apply(using lib: library.type, proof: lib.Proof)
+             (U: F.Variable)(xs: F.Variable*)
+             (premise: proof.Fact)(bot: F.Sequent): proof.ProofTacticJudgement =
+
+//      xs.foldRight(premise) { case (x, lastStep) =>
+//
+//        val bot1 = ???
+//        apply1(U)(x)(lastStep)
+//
+//      }
+      ???
+
+    end apply
+
+  end SimpleInstantiateForallIn
 
   // IMPROVE with tactic InstantiateForallInU
   object InstantiateForallIn extends ProofTactic:
@@ -203,6 +234,17 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
 
   val appInDom = Theorem(functionFrom(f, U, T) |- (x ∈ U) ==> (app(f, x) ∈ T)) {
+    assume(functionFrom(f, U, T))
+
+    val s1 = have(f ∈ setOfFunctions(U, T)) by Tautology.from(functionFrom.definition of (x := U, y := T))
+
+    val s2 = have(∀(t, in(t, setOfFunctions(U, T)) <=> (in(t, powerSet(cartesianProduct(U, T))) /\ functionalOver(t, U)))) by InstantiateForall(setOfFunctions(U, T))(setOfFunctions.definition of (x := U, y := T))
+    thenHave(in(f, setOfFunctions(U, T)) <=> (in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U))) by InstantiateForall(f)
+//    have(in(f, setOfFunctions(U, T)) <=> (in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U))) by InstantiateForall(setOfFunctions(U, T), f)(setOfFunctions.definition of (x := U, y := T)) // ASK
+
+    have(in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U)) by Tautology.from(lastStep, s1)
+
+
     sorry
   }
 
@@ -239,8 +281,9 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   val p1InU = Theorem(isO /\ (x ∈ U) |- x <= x) {
     assume(isO, x ∈ U)
-    have(∀(x, (x ∈ U) ==> x <= x)) by Tautology.from(isOrthollatice.definition, p1.definition)
-    thenHave(x <= x) by InstantiateForallIn(U)(x)
+    val s1 = have(∀(x, (x ∈ U) ==> x <= x)) by Tautology.from(isOrthollatice.definition, p1.definition)
+    thenHave(x <= x) by SimpleInstantiateForallIn.apply1(U)(x) // AR
+//    have(x <= x) by InstantiateForallIn(U)(x)(s1)
   }
 
   val p2InU = Theorem(isO +: isInUs |- (x <= y) /\ (y <= z) ==> x <= z) {
@@ -397,6 +440,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
         println(s"canProve($gamma, $delta) = $r")
         r
 
+      // IMPROVE by rm nesting of subproofs
+
       def prove(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement =
         cache.get(gamma, delta) match // FIX !!!
           case Some(r: proof.ProofTacticJudgement) => return r
@@ -434,7 +479,10 @@ object OrthologicWithAxiomsST extends lisa.Main:
               val p1 = p0.asInstanceOf[proof.ValidProofTactic].bot.left ++ lhs.result.left
               have(p1 |- Leq(Meet(x1, y1), z1)) by Cut.withParameters(Leq(x1, z1))(s1, lhs)
 
-          case (L(Meet(phi, psi)), delta) if prove(L(psi), delta).isValid => ???
+          case (L(Meet(phi, psi)), delta) if canProve(L(psi), delta) =>
+            ???
+
+        end res
 
         println(s"== ending prove($gamma, $delta) with ${res.isValid}")
         cache.addOne((gamma, delta), res)
