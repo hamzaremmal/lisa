@@ -232,6 +232,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val isInU: F.Formula = (x ∈ U) /\ (y ∈ U) /\ (z ∈ U)
   val isInUs: Seq[F.Formula] = Seq((x ∈ U), (y ∈ U), (z ∈ U))
 
+  def inU(xs: Term*): Seq[F.Formula] = xs.map(_ ∈ U)
+
 
   val appInDom = Theorem(functionFrom(f, U, T) |- (x ∈ U) ==> (app(f, x) ∈ T)) {
     assume(functionFrom(f, U, T))
@@ -326,30 +328,41 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   /** RULES **/
 
-  val hyp = Theorem(isO /\ (x ∈ U) |- x <= x) {
+  val hyp = Theorem(isO +: inU(x) |- x <= x) {
     have(thesis) by Restate.from(p1InU)
   }
 
   // L(x)R(y) /\ L(y)R(z) |- L(x)R(z)
-  val Cut_LR = Theorem(isO /\ isInU |- (x <= y) /\ (y <= z) ==> (x <= z)) {
+  val Cut_LR = Theorem(isO +: inU(x, y, z) |- (x <= y) /\ (y <= z) ==> (x <= z)) {
     have(thesis) by Tautology.from(p2InU)
   }
   // L(x)R(y) /\ L(y)L(z) |- L(x)L(z)
-  val Cut_LL = Theorem(isO /\ isInU |- (x <= y) /\ (y <= /(z)) ==> (z <= /(z))) {
+  val Cut_LL = Theorem(isO +: inU(x, y, z) |- (x <= y) /\ (y <= /(z)) ==> (z <= /(z))) {
     sorry
   }
 
-  val LeftAnd_LR = Theorem((isO /\ isInU, (x <= z)) |- (x n y) <= z) {
+  val LeftAnd_LR = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- (x n y) <= z) {
     assume(isO +: isInUs *)
     have((x n y) ∈ U) by Restate.from(joinInU)
     have(((x n y) <= x) /\ (x <= z) ==> (x n y) <= z) by Tautology.from(lastStep, p2InU of (x := (x n y), y := x))
     have(thesis) by Tautology.from(lastStep, p4aInU)
   }
-  val LeftAnd_LL = Theorem(isO /\ isInU |- (x <= /(z)) ==> (x n y) <= /(z)) {
+  val LeftAnd_LL = Theorem(isO +: inU(x, y, z) |- (x <= /(z)) ==> (x n y) <= /(z)) {
     assume(isO +: isInUs *)
     have(/(z) ∈ U) by Tautology.from(notInU of (x := z))
     have(thesis) by Tautology.from(lastStep, LeftAnd_LR of (z := /(z)))
   }
+
+  object LeftAnd extends ProofTactic:
+
+    def apply(using lib: library.type, proof: lib.Proof)
+             (premise: proof.Fact)(bot: F.Sequent): proof.ProofTacticJudgement =
+
+      bot match
+        case
+      ???
+
+  end LeftAnd
 
   val LeftOr_LR = Theorem(isO /\ isInU |- (x <= z) /\ (y <= z) ==> (x u y) <= z) {
     have(thesis) by Restate.from(p6bInU)
@@ -384,27 +397,21 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   object RestateWithAxioms:
 
-//    def apply(using lib: library.type, proof: lib.Proof)
-//             (universe: F.Term, leq: F.Term, meet: F.Term, join: F.Term, not: F.Term)
-//             (bot: F.Sequent): proof.ProofTacticJudgement =
-//      if bot.right.size != 1 then
-//        proof.InvalidProofTactic("Only support goals of the form ??? |- left <= right")
-//      else bot.right.head match
-//        case in(Pair(left, right), `leq`) => withParameters(universe, leq, meet, join, not)(left, right)
-//        case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
-
-
     // isOrthollatice(U, <=, n, u, not) |- left <= right
     def withParameters(using lib: library.type, proof: lib.Proof)
 //                      (U: F.Term, `<=`: F.ConstantPredicateLabel[2], meet: F.ConstantFunctionLabel[2], join: F.ConstantFunctionLabel[2], not: F.ConstantFunctionLabel[1])
-                      (universe: F.Term, leq: F.Term, meet: F.Term, join: F.Term, not0: F.Term)
-//                      (left: F.Term, right: F.Term): proof.ProofTacticJudgement =
+                      (universe: F.Term, leq: F.Term, meet: F.Term, join: F.Term, not0: F.Term) // AR move as class args ?
                       (bot: F.Sequent): proof.ProofTacticJudgement =
 //      def <=(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsST.<=)
 //      def n(right: Term): Term = app(OrthologicWithAxiomsST.n, pair(left, right))
 
-      val pIsO = isOrthollatice(universe, leq, meet, join, not0)
+      val isO1 = isOrthollatice(universe, leq, meet, join, not0)
       val insts: Seq[F.SubstPair] = Seq(U := universe, <= := leq, n := meet, u := join, not := not0)
+
+      def inUni(xs: Term*): Seq[F.Formula] = xs.map(_ ∈ universe)
+
+      extension (using proof: library.Proof)(fact: proof.Fact)
+        def of1(insts1: F.SubstPair*): proof.InstantiatedFact = fact.of(insts ++ insts1 *)
 
 //      extension (left: Term)
 //        def leq(right: Term): Formula = in(pair(left, right), leq)
@@ -435,7 +442,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
       val cache = mMap[(Annotated, Annotated), Any]()
 
       def prove(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement =
-        cache.get(gamma, delta) match // FIX !!!
+        cache.get(gamma, delta) match
           case Some(cachedSamePath: proof.ProofTacticJudgement) =>
             cachedSamePath
           case Some(r) if r.isInstanceOf[proof.InvalidProofTactic] =>
@@ -456,39 +463,37 @@ object OrthologicWithAxiomsST extends lisa.Main:
       def proved(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): Boolean =
         prove(gamma, delta).isValid
 
-      // IMPROVE by rm nesting of subproofs
+      // IMPROVE by
+      //  - rm nesting of subproofs
+      //  - rm as mush as can premises of the form isInU
 
       // prove isO /\ ... in universe |- gamma delta
-      def proveNoC(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement =
+      def proveNoC(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement = TacticSubproof:
+        assume(isO1)
         (gamma, delta) match
 
-          case (L(phi), R(psi)) if phi == psi =>
-            TacticSubproof:
-              have(pIsO /\ (phi ∈ universe) |- Leq(phi, psi)) by Restate.from(hyp.of(insts *)) // AR why no need for of ...
-          //              ???
+          case (L(phi), R(psi)) if phi == psi => // RN?
+            have(inUni(phi) |- Leq(phi, psi)) by Restate.from(hyp of1 (x := phi))
 
           // Weaken TODO
 //          case (L(phi), delta: L | R) => ???
 
-          case (L(Meet(x1, y1)), R(z1)) if proved(L(x1), R(z1)) =>
-            assert(proved(L(x1), R(z1)))
-            TacticSubproof: // IMPROVE use andThen
-              assert(proved(L(x1), R(z1)))
-              val p0 = prove(L(x1), R(z1))
-              assert(p0.isValid)
-              val s1 = have(p0)
+//          case (L(Meet(x1, y1)), R(z1)) if proved(L(x1), R(z1)) =>
+//            val s1 = have(prove(L(x1), R(z1)))
+//            val goal: Sequent = inUni(x1, y1, z1) |- Leq(Meet(x1, y1), z1)
+//            have(goal) by Cut(s1, LeftAnd_LR of1 (x := x1, y := y1, z := z1))
 
-              //              val p1: Set[Formula] = Set(x1, y1, z1).map(_ ∈ universe) + pIsO
-              //              have(p1 |- Leq(Meet(x, y), z)) by Cut(s1, LeftAnd_LR.of(insts*))
-              println(s"x1: $x1, y1: $y1, z1: $z1")
-              println(s"rhs: ${s1.bot}")
-              val lhs = LeftAnd_LR.of(x := x1, y := y1, z := z1).of(insts *)
-              println(s"lhs: ${lhs.result}")
-              val p1 = p0.asInstanceOf[proof.ValidProofTactic].bot.left ++ lhs.result.left
-              have(p1 |- Leq(Meet(x1, y1), z1)) by Cut.withParameters(Leq(x1, z1))(s1, lhs)
+          // LeftAnd
+          case (L(Meet(x1, y1)), delta) if proved(L(x1), delta) =>
+            val s1 = have(prove(L(x1), delta))
+            delta match
+              case L(z1) => ???
+              case R(z1) =>
+                have(inUni(x1, y1, z1) |- Leq(Meet(x1, y1), z1)) by
+                  Cut(s1, LeftAnd_LR of1 (x := x1, y := y1, z := z1))
+              case N => ???
 
-          case (L(Meet(phi, psi)), delta) if proved(L(psi), delta) =>
-            ???
+          case (L(Meet(phi, psi)), delta) if proved(L(psi), delta) => ???
 
       end proveNoC
 
@@ -515,15 +520,16 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   val isO1 = isOrthollatice(uni1, leq1, meet1, join1, not1)
 
-  val test1 = Theorem(isO1 /\ (x ∈ uni1) |- (x leq1 x)) { proof ?=>
-//    val s1 = RestateWithAxioms.withParameters(uni1, leq1, meet1, join1, not1)(x, x)
-//    have(thesis) by Tautology.from(have(s1))
-    have(thesis) by RestateWithAxioms.withParameters(uni1, leq1, meet1, join1, not1)
+  def RestateWithAxioms1(using proof: library.Proof): F.Sequent => proof.ProofTacticJudgement =
+    RestateWithAxioms.withParameters(uni1, leq1, meet1, join1, not1)
+
+  val testp1 = Theorem(isO1 /\ (z ∈ uni1) |- (z leq1 z)) {
+    have(thesis) by RestateWithAxioms1
   }
 
-//  val test1b = Theorem(isO1 /\ (x ∈ uni1) |- (x leq1 x)) {
-//    have(thesis) by RestateWithAxioms(uni1, leq1, meet1, join1, not1)
-//  }
+  val testp4a = Theorem(isO1 /\ (x ∈ uni1) /\ (y ∈ uni1) |- ((x meet1 y) leq1 x)) {
+    have(thesis) by RestateWithAxioms1
+  }
 
 //  val test2 = Theorem(isO1 /\ (x ∈ uni1) /\ (y ∈ uni1) |- ((x meet1 y) leq1 x)) {
 //    have(thesis) by RestateWithAxioms(uni1, leq1, meet1, join1, not1)
