@@ -391,12 +391,12 @@ object OrthologicWithAxiomsST extends lisa.Main:
   object Pair:
     def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
       case unorderedPair(unorderedPair(x1, y1), Singleton(x2)) if x1 == x2 => Some((x1, y1))
+      case _ => None
 
   object App:
     def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
       case AppliedFunction(`app`, Seq(fun, arg)) => Some((fun, arg))
       case _ => None
-
 
   object RestateWithAxioms extends ProofTactic:
 
@@ -412,9 +412,11 @@ object OrthologicWithAxiomsST extends lisa.Main:
     val join = OrthologicWithAxiomsST.u
     val not0 = OrthologicWithAxiomsST.not // RN
 
+    var log = false
+
     object Leq:
-      def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
-        case in(Pair(l, r), `leq`) => Some((l, r))
+      def unapply(t: F.Formula): Option[(F.Term, F.Term)] = t match
+        case in(Pair(x, y), `leq`) => Some((x, y))
         case _ => None
 
     object Meet:
@@ -432,7 +434,6 @@ object OrthologicWithAxiomsST extends lisa.Main:
         case App(`not0`, x) => Some(x)
         case _ => None
 
-
     def apply(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
 
       // TODO better error messages
@@ -441,8 +442,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
       else if !(bot.left contains isO) then
         proof.InvalidProofTactic("Only support goals of the form isO +: ... |- left <= right")
       else bot.right.head match
-        case in(Pair(left, right), `leq`) =>
-//        case Leq(left, right) => // FIX
+//        case in(Pair(left, right), `leq`) =>
+        case Leq(left, right) => // FIX
 //          val Leq(left, right) = bot.right.head
 
           val left1 = if left == `1` then N else L(left)
@@ -457,7 +458,17 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
           val termsInU = bot.left.collect { case in(x1, `U`) => x1 }
 
-          withParameters(termsInU, axioms = Set.empty)(left1, right1)
+          val axioms = bot.left.collect {
+            case t @ Leq(_, _) => t // TODO? check inU ?
+//            case Leq(`1`, `0`) => (N, N)
+//            case Leq(`1`, r) => (N, R(r))
+//            case Leq(l, `0`) => (L(l), N)
+//            case Leq(l, r) => (L(l), R(r))
+            // AR!
+          }
+          if log then println(s"axioms: $axioms")
+
+          withParameters(termsInU, axioms)(left1, right1)
           // TODO Weakening if bot.left contains more stuff
 
         case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
@@ -467,10 +478,15 @@ object OrthologicWithAxiomsST extends lisa.Main:
     // IMPROVE such that do not neet to write .apply
     // isOrthollatice(U, <=, n, u, not) |- left <= right
     def withParameters(using lib: library.type, proof: lib.Proof)
-                      (termsInU: Set[Term], axioms: Set[(Annotated, Annotated)])
+//                      (termsInU: Set[Term], axioms: Set[(Annotated, Annotated)])
+                      (termsInU: Set[Term], axioms: Set[Formula])
                       (left: Annotated, right: Annotated): proof.ProofTacticJudgement =
 
       val premises = isO +: inU(termsInU.toSeq*)
+
+      val axFormulas: Set[Term] = axioms
+//        .flatMap(Set(_, _)).collect { case L(x) => x case R(x) => x }
+        .flatMap { case Leq(l, r) => Set(l, r) }.filterNot(Set(`0`, `1`))
 
       val chacheInU = mMap[Term, Any]() // TODO!
 
@@ -509,14 +525,6 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       end proveInU
 
-//      inline def DischargeAsInU(xs: Term*) =
-//        inline xs match
-//          case Seq() =>
-//          case x +: xs =>
-//            Discharge(have(proveInU(x)))
-//            DischargeAsInU(xs)
-
-
       extension (a: Annotated)
         def pos1: Term = a match
           case L(t) => t case R(t) => /(t) case N => `1`
@@ -524,10 +532,6 @@ object OrthologicWithAxiomsST extends lisa.Main:
           case L(t) => /(t) case R(t) => t case N => `0`
 
       // MV to proveNoC start a vals
-      object P1:
-        def unapply(a: Annotated): Some[F.Term] = Some(a.pos1)
-      object P2:
-        def unapply(a: Annotated): Some[F.Term] = Some(a.pos2)
 
       val cache = mMap[(Annotated, Annotated), Any]()
 
@@ -541,7 +545,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
             r.asInstanceOf[proof.ProofTacticJudgement]
             // NOTE works to avoid cycles but doesn't reuse a ValidProofTactic with different path
           case _ =>
-            println(" " * ident + s"== starting prove($gamma, $delta)")
+            if log then println(" " * ident + s"== starting prove($gamma, $delta)")
             ident += 1
 
             cache.addOne((gamma, delta), proof.InvalidProofTactic(s"Starting prove($gamma, $delta)"))
@@ -549,7 +553,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
             cache.addOne((gamma, delta), res)
 
             ident -= 1
-            println(" " * ident + s"== ending prove($gamma, $delta) with ${res.isValid}")
+            if log then println(" " * ident + s"== ending prove($gamma, $delta) with ${res.isValid}")
             res
       end prove
 
@@ -575,7 +579,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       // prove isO /\ ... in universe |- gamma delta
       def proveNoC(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement = TacticSubproof:
-        assume(isO)
+        assume(isO +: inU(termsInU.toSeq*) concat axioms *) // RN
 
         val gammaF = gamma.pos1 // AR use more
         val deltaF = delta.pos2 // AR use more
@@ -584,12 +588,17 @@ object OrthologicWithAxiomsST extends lisa.Main:
         (gamma, delta) match
 
           case (L(x1), R(y1)) if x1 == y1 =>
-            have(inU(x1) |- (x1 <= y1)) by Restate.from(hyp of (x := x1))
+            have(inU(x1) |- (x1 <= y1)) by Weakening(hyp of (x := x1))
+
+//            // NOTE code below is for dicharging merged into main tactic
 //            val s1 = have(proveInU(x1))
 //            have(x1 ∈ U |- x1 <= y1) by Weakening(hyp of (x := x1))
 //            andThen(Discharge(s1))
 ////            have(x1 <= y1) by Cut(s1, hyp of (x := x1))
 
+          // Ax
+          case _ if axioms contains (gammaF <= deltaF) =>
+            have(gammaF <= deltaF) by RewriteTrue
 
           /** Deconstructing L **/
 
@@ -609,12 +618,12 @@ object OrthologicWithAxiomsST extends lisa.Main:
 //          case (L(Not(x1)), delta) if proved(delta, R(x1)) && false => ??? // RM
 
           // LeftAnd
-          case (L(Meet(x1, y1)), delta @ P2(z1)) if proved(L(x1), delta) =>
+          case (L(Meet(x1, y1)), delta) if proved(L(x1), delta) =>
             val s1 = have(prove(L(x1), delta))
-            have(s1.bot.left ++ inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd1 of (x := x1, y := y1, z := z1))
-          case (L(Meet(x1, y1)), delta @ P2(z1)) if proved(L(y1), delta) =>
+            have(s1.bot.left ++ inU(x1, y1, deltaF) |- (x1 n y1) <= deltaF) by Cut(s1, leftAnd1 of (x := x1, y := y1, z := deltaF))
+          case (L(Meet(x1, y1)), delta) if proved(L(y1), delta) =>
             val s1 = have(prove(L(y1), delta))
-            have(inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd2 of (x := x1, y := y1, z := z1))
+            have(s1.bot.left ++ inU(x1, y1, deltaF) |- (x1 n y1) <= deltaF) by Cut(s1, leftAnd2 of (x := x1, y := y1, z := deltaF))
 
           // LeftOr
           case (L(Join(x1, y1)), delta) if proved(L(x1), delta) && proved(L(y1), delta) =>
@@ -644,7 +653,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
           // Weaken
           case (gamma, R(x1)) if proved(N, R(x1)) =>
             val s1 = have(prove(N, R(x1)))
-            have(s1.bot.left |- gammaF <= x1) by Cut(s1, weaken2 of (x := gammaF, y := x1))
+            have(s1.bot.left ++ inU(gammaF, x1) |- gammaF <= x1) by Cut(s1, weaken2 of (x := gammaF, y := x1))
 
           // RightNot
           case (gamma, R(Not(x1))) if proved(gamma, L(x1)) =>
@@ -676,15 +685,23 @@ object OrthologicWithAxiomsST extends lisa.Main:
               case N => // s1: 1 <= x1
                 ??? // AR can happen ?
 
-          // AxCut TODO
+          // AxCut IMPROVE perf ! TODO
+          case (gamma, delta) if axFormulas.exists(x1 => proved(gamma, R(x1)) && proved(L(x1), delta)) =>
+            LazyList.from(axFormulas)
+              .map { x1 => (x1, (prove(gamma, R(x1)), prove(L(x1), delta))) }
+              .collectFirst { case (x1, (s1, s2)) if s1.isValid && s2.isValid =>
+
+                have((gammaF <= x1) /\ (x1 <= deltaF)) by RightAnd(have(s1), have(s2))
+                have(gammaF <= deltaF) by Cut(lastStep, cut of (x := gammaF, y := x1, z := deltaF))
+
+              }.get
+
+          // Ax REVIEW needed !?
+          case _ if axioms contains (deltaF <= gammaF) => ???
 
           case (gamma, delta) => return proof.InvalidProofTactic(s"No rules applied to $gamma, $delta") // RN?
 
       end proveNoC
-
-      def dischargeInU(using proof: lib.Proof): proof.ProofTacticJudgement =
-
-        ???
 
       prove(left, right) andThen2 { s0 =>
 
@@ -695,10 +712,6 @@ object OrthologicWithAxiomsST extends lisa.Main:
         if toDischarge.isEmpty then
           have(s0.bot) by Tautology.from(s0) // FIX
         else
-//          val s1 = have(proveInU(toDischarge.head))
-//          have(s0.bot) by Tautology.from(s0) // FIX
-//          andThen(Discharge(s1)) // by Restate.from(lastStep) // RM
-
           val fs = toDischarge.toSeq.map { xi => have(proveInU(xi)) }
           have(s0.bot) by Tautology.from(s0) // FIX
           andThen(Discharge(fs *))
@@ -749,11 +762,18 @@ object OrthologicWithAxiomsST extends lisa.Main:
   }
 
 
+
+  val test4 = Theorem(isO +: inU(x, y, z) |- (x n y) <= (y u z)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  RestateWithAxioms.log = true
+
+  val test5 = Theorem(isO +: inU(x) :+ (`1` <= x) |- !x <= `0`) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
 /*
-The proof proves
-elem('z, 'U); isOrthollatice('U, '<=, 'n, 'u, 'not, '0, '1) ⊢ elem('z, 'U)
-instead of claimed
-isOrthollatice('U, '<=, 'n, 'u, 'not, '0, '1); elem('z, 'U) ⊢ elem(unorderedPair(unorderedPair('z, 'z), unorderedPair('z, 'z)), '<=)
 
 
 
