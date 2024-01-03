@@ -241,13 +241,14 @@ object OrthologicWithAxiomsST extends lisa.Main:
     sorry
   }
 
-  val meetInU = Theorem(isO +: inU(x, y) |- (x u y) ∈ U) {
+
+  val meetInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x u y) ∈ U) {
     sorry
   }
-  val joinInU = Theorem(isO +: inU(x, y) |- (x n y) ∈ U) {
+  val joinInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x n y) ∈ U) {
     sorry
   }
-  val notInU = Theorem(isO +: inU(x) |- !x ∈ U) {
+  val notInU = Theorem((isO, x ∈ U) |- !x ∈ U) {
 //    assume(isO +: isInUs *)
 //    val s1 = have(functionalOver(not, U)) by Tautology.from(isOrthollatice.definition, p0.definition)
 //    val s2 = have(relationDomain(not) === U) by Tautology.from(s1, functionalOver.definition of (f := not, x := U))
@@ -367,12 +368,12 @@ object OrthologicWithAxiomsST extends lisa.Main:
     sorry
   }
 
-  val leftOr = Theorem(isO +: inU(x, y, z) :+ (x <= z) :+ (y <= z) |- (x u y) <= z) {
+  val leftOr = Theorem(isO +: inU(x, y, z) :+ (x <= z) /\ (y <= z) |- (x u y) <= z) {
 //    have(thesis) by Restate.from(p6bInU)
     sorry
   }
 
-  val rightAnd = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (x <= z) |- x <= (y n z)) { sorry }
+  val rightAnd = Theorem(isO +: inU(x, y, z) :+ (x <= y) /\ (x <= z) |- x <= (y n z)) { sorry }
 
   val rightOr1 = Theorem(isO +: inU(x, y, z) :+ (x <= y) |- x <= (y u z)) { sorry }
   val rightOr2 = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- x <= (y u z)) { sorry }
@@ -399,42 +400,77 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   object RestateWithAxioms extends ProofTactic:
 
+    enum Annotated:
+      case L(t: F.Term)
+      case R(t: F.Term)
+      case N
+    import Annotated.*
+
+    // AR
+    val leq = OrthologicWithAxiomsST.<=
+    val meet = OrthologicWithAxiomsST.n
+    val join = OrthologicWithAxiomsST.u
+    val not0 = OrthologicWithAxiomsST.not // RN
+
+    object Leq:
+      def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
+        case in(Pair(l, r), `leq`) => Some((l, r))
+        case _ => None
+
+    object Meet:
+      def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
+        case App(`meet`, Pair(x, y)) => Some((x, y))
+        case _ => None
+
+    object Join:
+      def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
+        case App(`join`, Pair(x, y)) => Some((x, y))
+        case _ => None
+
+    object Not:
+      def unapply(t: F.Term): Option[F.Term] = t match
+        case App(`not0`, x) => Some(x)
+        case _ => None
+
+
+    def apply(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+
+      // TODO better error messages
+      if bot.right.size != 1 then
+        proof.InvalidProofTactic("Only support goals of the form ??? |- left <= right")
+      else if !(bot.left contains isO) then
+        proof.InvalidProofTactic("Only support goals of the form isO +: ... |- left <= right")
+      else bot.right.head match
+        case in(Pair(left, right), `leq`) =>
+//        case Leq(left, right) => // FIX
+//          val Leq(left, right) = bot.right.head
+
+          val left1 = if left == `1` then N else L(left)
+          val right1 = if right == `0` then N else R(right)
+          /*
+          (left, right) match
+            case (`1`, `0`) | (`0`, `1`) => prove(N, N)
+            case (`1`, r) => prove(N, R(r))
+            case (r, `1`) =>
+            case (l, `0`) =>
+          */
+
+          val termsInU = bot.left.collect { case in(x1, `U`) => x1 }
+
+          withParameters(termsInU, axioms = Set.empty)(left1, right1)
+          // TODO Weakening if bot.left contains more stuff
+
+        case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
+
+    end apply
 
     // IMPROVE such that do not neet to write .apply
     // isOrthollatice(U, <=, n, u, not) |- left <= right
-    def apply(using lib: library.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+    def withParameters(using lib: library.type, proof: lib.Proof)
+                      (termsInU: Set[Term], axioms: Set[(Annotated, Annotated)])
+                      (left: Annotated, right: Annotated): proof.ProofTacticJudgement =
 
-      // AR
-      val leq = OrthologicWithAxiomsST.<=
-      val meet = OrthologicWithAxiomsST.n
-      val join = OrthologicWithAxiomsST.u
-      val not0 = OrthologicWithAxiomsST.not // RN
-
-      object Leq:
-        def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
-          case in(Pair(l, r), `leq`) => Some((l, r))
-          case _ => None
-
-      object Meet:
-        def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
-          case App(`meet`, Pair(x, y)) => Some((x, y))
-          case _ => None
-
-      object Join:
-        def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
-          case App(`join`, Pair(x, y)) => Some((x, y))
-          case _ => None
-
-      object Not:
-        def unapply(t: F.Term): Option[F.Term] = t match
-          case App(`not0`, x) => Some(x)
-          case _ => None
-
-      enum Annotated:
-        case L(t: F.Term)
-        case R(t: F.Term)
-        case N
-      import Annotated.*
+      val premises = isO +: inU(termsInU.toSeq*)
 
       extension (a: Annotated)
         def pos1: Term = a match
@@ -596,23 +632,36 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       end proveNoC
 
-      if bot.right.size != 1 then
-        proof.InvalidProofTactic("Only support goals of the form ??? |- left <= right")
-      else bot.right.head match
-        case in(Pair(left, right), `leq`) =>
-          val left1 = if left == `1` then N else L(left)
-          val right1 = if right == `0` then N else R(right)
-          prove(left1, right1)
+      val chacheInU = mMap[Term, Any]() // TODO!
 
-//          (left, right) match
-//            case (`1`, `0`) | (`0`, `1`) => prove(N, N)
-//            case (`1`, r) => prove(N, R(r))
-//            case (r, `1`) =>
-//            case (l, `0`) =>
+      def proveInU(using proof: lib.Proof)(t: Term): proof.ProofTacticJudgement = TacticSubproof:
+        val p = assume(premises*)
 
-        case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
+        t match
 
-    end apply
+          case x1 if termsInU contains x =>
+            have(x1 ∈ U) by Weakening(p)
+
+          case Not(x1) =>
+            proveInU(x1) andThen2 { lastStep =>
+              have(!x1 ∈ U) by Cut(lastStep, notInU of (x := x1))
+            }
+
+          case Meet(x1, y1) =>
+            proveInU(x1) andThen { s1 =>
+              proveInU(y1) andThen2 { s2 =>
+                have(x1 ∈ U /\ y1 ∈ U) by RightAnd(s1, s2)
+                have((x1 n y1) ∈ U) by Cut(lastStep, meetInU of (x := x1, y := y1))
+              }
+            }
+
+          case t => return proof.InvalidProofTactic(s"Could not prove $t ∈ $U") // RN?
+
+        ???
+      end proveInU
+
+      prove(left, right)
+    end withParameters
 
   end RestateWithAxioms
 
