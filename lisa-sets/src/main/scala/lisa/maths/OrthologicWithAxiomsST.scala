@@ -275,7 +275,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   /** Axioms with inU .. as premises **/
 
-  /*
+
   val p1InU = Theorem(isO +: inU(x) |- x <= x) {
     assume(isO, x ∈ U)
     val s1 = have(∀(x, (x ∈ U) ==> x <= x)) by Tautology.from(isOrthollatice.definition, p1.definition)
@@ -284,7 +284,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
   }
 
   val p2InU = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- x <= z) {
-    assume(isO +: isInUs *)
+    assume(isO +: inU(x, y, z) *)
 
     have(forallInU(x, y, z) { (x <= y) /\ (y <= z) ==> x <= z }) by Tautology.from(isOrthollatice.definition, p2.definition)
 
@@ -328,7 +328,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val p8aInU = Theorem(isO +: inU(x, y) :+ (x <= y) |- /(y) <= /(x)) {
     sorry
   }
-  */
+
 
   /** RULES **/
 
@@ -342,10 +342,14 @@ object OrthologicWithAxiomsST extends lisa.Main:
     sorry
   }
 
+  // x^L |- x^L y^R
   val weaken1 = Theorem(isO +: inU(x, y) :+ (x <= `0`) |- x <= y) { sorry }
+  // y^R |- x^L y^R
   val weaken2 = Theorem(isO +: inU(x, y) :+ (`1` <= y) |- x <= y) { sorry }
 
+  // x^L x^L |- x^L
   val contraction1 = Theorem(isO +: inU(x) :+ (x <= !x) |- x <= `0`) { sorry }
+  // x^R x^R |- x^R
   val contraction2 = Theorem(isO +: inU(x) :+ (!x <= x) |- `1` <= x) { sorry }
 
   val leftAnd1 = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- (x n y) <= z) {
@@ -373,7 +377,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val rightOr1 = Theorem(isO +: inU(x, y, z) :+ (x <= y) |- x <= (y u z)) { sorry }
   val rightOr2 = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- x <= (y u z)) { sorry }
 
-  val commutRL = Theorem(isO +: inU(x, y) :+ (!x <= !y) |- y <= x) { sorry }
+  val commutRL = Theorem(isO +: inU(x, y) :+ (x <= y) |- !y <= !x) { sorry }
   val commutLL = Theorem(isO +: inU(x, y) :+ (x <= !y) |- y <= !x) { sorry }
   val commutRR = Theorem(isO +: inU(x, y) :+ (!x <= y) |- !y <= x) { sorry }
 
@@ -403,6 +407,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
       // AR
       val leq = OrthologicWithAxiomsST.<=
       val meet = OrthologicWithAxiomsST.n
+      val join = OrthologicWithAxiomsST.u
       val not0 = OrthologicWithAxiomsST.not // RN
 
       object Leq:
@@ -413,6 +418,11 @@ object OrthologicWithAxiomsST extends lisa.Main:
       object Meet:
         def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
           case App(`meet`, Pair(x, y)) => Some((x, y))
+          case _ => None
+
+      object Join:
+        def unapply(t: F.Term): Option[(F.Term, F.Term)] = t match
+          case App(`join`, Pair(x, y)) => Some((x, y))
           case _ => None
 
       object Not:
@@ -440,6 +450,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       val cache = mMap[(Annotated, Annotated), Any]()
 
+      var ident = 0
+
       def prove(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement =
         cache.get(gamma, delta) match
           case Some(cachedSamePath: proof.ProofTacticJudgement) =>
@@ -448,11 +460,15 @@ object OrthologicWithAxiomsST extends lisa.Main:
             r.asInstanceOf[proof.ProofTacticJudgement]
             // NOTE works to avoid cycles but doesn't reuse a ValidProofTactic with different path
           case _ =>
-            println(s"== starting prove($gamma, $delta)")
+            println(" " * ident + s"== starting prove($gamma, $delta)")
+            ident += 1
+
             cache.addOne((gamma, delta), proof.InvalidProofTactic(s"Starting prove($gamma, $delta)"))
             val res: proof.ProofTacticJudgement = proveNoC(gamma, delta)
             cache.addOne((gamma, delta), res)
-            println(s"== ending prove($gamma, $delta) with ${res.isValid}")
+
+            ident -= 1
+            println(" " * ident + s"== ending prove($gamma, $delta) with ${res.isValid}")
             res
       end prove
 
@@ -462,6 +478,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
       //  - rm nesting of subproofs
       //  - rm as mush as can premises of the form isInU
 
+      // CHECK ordering importance
+
       /*
       L(x) delta --> x <= I(delta)
       gamma R(x) --> I(gamma) <= x
@@ -470,6 +488,9 @@ object OrthologicWithAxiomsST extends lisa.Main:
       N L
       R N
       * */
+
+      extension (s: Sequent)
+        def toString2 = "\nleft:" + s.left.map(f => s"\n\t$f") + "\nright:" + s.right.map(f => s"\n\t$f")
 
       // prove isO /\ ... in universe |- gamma delta
       def proveNoC(using proof: lib.Proof)(gamma: Annotated, delta: Annotated): proof.ProofTacticJudgement = TacticSubproof:
@@ -486,71 +507,90 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
           /** Deconstructing L **/
 
-          // Weaken TODO
-          case (L(x1), delta) if delta != N && proved(L(x1), N) && false => ???
-
           // Contraction
-          case (L(x1), N) if proved(L(x1), L(x1)) && false => ???
+          case (L(x1), N) if proved(L(x1), L(x1)) =>
+            val s1 = have(prove(L(x1), L(x1)))
+            have(s1.bot.left |- x1 <= `0`) by Cut(s1, contraction1 of (x := x1))
+
+          // Weaken
+          case (L(x1), delta) if proved(L(x1), N) =>
+            val s1 = have(prove(L(x1), N))
+            have(s1.bot.left |- x1 <= deltaF) by Cut(s1, weaken1 of (x := x1, y := deltaF))
 
           // LeftNot
           case (L(Not(x1)), delta) if proved(R(x1), delta) =>
             have(prove(R(x1), delta))
+//          case (L(Not(x1)), delta) if proved(delta, R(x1)) && false => ??? // RM
 
           // LeftAnd
           case (L(Meet(x1, y1)), delta @ P2(z1)) if proved(L(x1), delta) =>
             val s1 = have(prove(L(x1), delta))
-            have(inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd1 of (x := x1, y := y1, z := z1))
+            have(s1.bot.left ++ inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd1 of (x := x1, y := y1, z := z1))
           case (L(Meet(x1, y1)), delta @ P2(z1)) if proved(L(y1), delta) =>
             val s1 = have(prove(L(y1), delta))
-            have(inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd2 of(x := x1, y := y1, z := z1))
+            have(inU(x1, y1, z1) |- (x1 n y1) <= z1) by Cut(s1, leftAnd2 of (x := x1, y := y1, z := z1))
 
-          // TODO
-          case (gamma, L(x1)) if proved(L(x1), gamma) && false =>
+          // LeftOr
+          case (L(Join(x1, y1)), delta) if proved(L(x1), delta) && proved(L(y1), delta) =>
+            val s1 = have(prove(L(x1), delta))
+            val s2 = have(prove(L(y1), delta))
+            have(s1.bot.left ++ s2.bot.left |- (x1 u y1) <= deltaF) by
+              Tautology.from(s1, s2, leftOr of (x := x1, y := y1, z := deltaF)) // IMPROVE use Cut
+
+          case (gamma, L(x1)) if proved(L(x1), gamma) =>
             val s1 = have(prove(L(x1), gamma)) // x1 <= gamma.pos2
-
-//            assume(gamma != N)
             gamma match
-              case L(y1) =>
-//                have(y1 <= !x1)
-                ???
-              case R(y1) => ???
+              case L(y1) => // s1: x1 <= !y1
+                have(s1.bot.left ++ inU(x1, y1) |- y1 <= !x1) by Cut(s1, commutLL of (x := x1, y := y1))
+//                have(s1.bot.left ++ inU(!y1) |- y1 <= !x1) by Cut(s1, commutLL of (x := x1, y := y1))
+              case R(y1) => // s1: x1 <= y1
+                have(s1.bot.left |- !y1 <= !x1) by Cut(s1, commutRL of (x := x1, y := y1))
+              case N => // s1: x1 <= 0
+                ??? // AR can happen ?
 
           /** Deconstructing R **/
 
-          // AR is diff order problematic
-          // Weaken TODO
-          case (gamma, R(y1)) if gamma != N && proved(N, R(y1)) && false => ???
+          // Contraction
+          case (N, R(x1)) if proved(R(x1), R(x1)) =>
+            val s1 = have(prove(R(x1), R(x1)))
+            have(s1.bot.left |- `1` <= x1) by Cut(s1, contraction2 of (x := x1))
 
-          // Contraction TODO
-          case (N, R(y1)) if proved(R(y1), R(y1)) && false => ???
-          
+          // Weaken
+          case (gamma, R(x1)) if proved(N, R(x1)) =>
+            val s1 = have(prove(N, R(x1)))
+            have(s1.bot.left |- gammaF <= x1) by Cut(s1, weaken2 of (x := gammaF, y := x1))
+
           // RightNot
           case (gamma, R(Not(x1))) if proved(gamma, L(x1)) =>
             have(prove(gamma, L(x1)))
 
-          // TODO
-          case (R(x1), delta) if proved(delta, R(x1)) && false =>
+          // RightAnd
+          case (gamma, R(Meet(x1, y1))) if proved(gamma, R(x1)) && proved(gamma, R(x1)) =>
+            val s1 = have(prove(gamma, R(x1)))
+            val s2 = have(prove(gamma, R(y1)))
+            have(s1.bot.left ++ s2.bot.left |- gammaF <= (x1 n y1)) by
+              Tautology.from(s1, s2, rightAnd of(x := gammaF, y := x1, z := y1)) // IMPROVE use Cut
+
+          // RightOr
+          case (gamma, R(Join(x1, y1))) if proved(gamma, R(x1)) =>
+            val s1 = have(prove(gamma, R(x1)))
+            have(s1.bot.left ++ inU(gammaF, x1, y1) |- gammaF <= (x1 u y1)) by Cut(s1, rightOr1 of (x := gammaF, y := x1, z := y1))
+          case (gamma, R(Join(x1, y1))) if proved(gamma, R(y1)) =>
+            val s1 = have(prove(gamma, R(y1)))
+            have(s1.bot.left ++ inU(gammaF, x1, y1) |- gammaF <= (x1 u y1)) by Cut(s1, rightOr2 of (x := gammaF, y := x1, z := y1))
+
+          case (R(x1), delta) if proved(delta, R(x1)) =>
             val s1 = have(prove(delta, R(x1))) // delta.pos1 <= x1
-            have(s1.bot.left |- /(x1) <= /(deltaF)) by Cut(s1, p8aInU of(x := deltaF, y := x1))
-
             delta match
-              case L(y1) =>
-                have(s1.bot.left |- /(x1) <= /(y1)) by Cut(s1, p8aInU of(x := y1, y := x1))
+              case L(y1) => // s1: y1 <= x1
+                have(s1.bot.left |- !x1 <= !y1) by Cut(s1, commutRL of(x := y1, y := x1))
+              case R(y1) => // s1: !y1 <= x1
+                val s2 = commutRR of(x := y1, y := x1)
+                have(s1.bot.left ++ inU(x1) |- !x1 <= y1) by Cut(s1, s2) // IMRPOVE rm in(x1)
+              case N => // s1: 1 <= x1
+                ??? // AR can happen ?
 
-              case R(y1) =>
-                // s1: /(y1) <= x1
-                have(inU(y1) |- /(/(y1)) <= y1) by Restate.from(p7bInU of (x := y1))
-//                have(/(x1) <= )
-                //                have(/(x1) <= y1) by (s1)
-                ???
-
-              case N =>
-                ???
-
-          // TODO flip others too ?
-          case (R(x1), L(y1)) if proved(L(y1), R(x1)) =>
-            val s1 = have(prove(L(y1), R(x1)))
-            have(/(x1) <= /(y1)) by Cut(s1, p8aInU of(x := y1, y := x1))
+          // AxCut TODO
 
           case (gamma, delta) => return proof.InvalidProofTactic(s"No rules applied to $gamma, $delta") // RN?
 
@@ -559,7 +599,17 @@ object OrthologicWithAxiomsST extends lisa.Main:
       if bot.right.size != 1 then
         proof.InvalidProofTactic("Only support goals of the form ??? |- left <= right")
       else bot.right.head match
-        case in(Pair(left, right), `leq`) => prove(L(left), R(right))
+        case in(Pair(left, right), `leq`) =>
+          val left1 = if left == `1` then N else L(left)
+          val right1 = if right == `0` then N else R(right)
+          prove(left1, right1)
+
+//          (left, right) match
+//            case (`1`, `0`) | (`0`, `1`) => prove(N, N)
+//            case (`1`, r) => prove(N, R(r))
+//            case (r, `1`) =>
+//            case (l, `0`) =>
+
         case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
 
     end apply
@@ -567,26 +617,52 @@ object OrthologicWithAxiomsST extends lisa.Main:
   end RestateWithAxioms
 
 
-  val testp1 = Theorem(isO +: inU(z) |- (z <= z)) {
+  val testp1 = Theorem(isO +: inU(z) |- z <= z) {
     have(thesis) by RestateWithAxioms.apply
   }
-
+//  val testp3a = Theorem(isO +: inU(x) |- `0` <= x) {
+//    have(thesis) by RestateWithAxioms.apply
+//  }
+//  val testp3b
   val testp4a = Theorem(isO +: inU(x, y) |- (x n y) <= x) {
     have(thesis) by RestateWithAxioms.apply
   }
-
+  val testp4b = Theorem(isO +: inU(x, y) |- x <= (x u y)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
   val testp5a = Theorem(isO +: inU(x, y) |- (x n y) <= y) {
     have(thesis) by RestateWithAxioms.apply
   }
-
-  val testp7b = Theorem(isO +: inU(x) |- /(/(x)) <= x) {
+  val testp5b = Theorem(isO +: inU(x, y) |- y <= (x u y)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+  val testp7a = Theorem(isO +: inU(x, !x) |- x <= !(!x)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+  val testp7b = Theorem(isO +: inU(x, !x) |- !(!x) <= x) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+  val testp9a = Theorem(isO +: inU(x, !x, (x n !x), !(x n !x)) |- (x n !x) <= `0`) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+  val testp9b = Theorem(isO +: inU(x, !x, (x u !x), !(x u !x)) |- `1` <= (x u !x)) {
     have(thesis) by RestateWithAxioms.apply
   }
 
 
-
-
 /*
+
+The proof proves
+elem(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), 'U)           inU(x n !x)
+elem(app('not, app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x)))), 'U);   inU(!(x n !x))
+⊢
+elem(unorderedPair(unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), '0), unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))))), '<=)
+
+instead of claimed
+⊢
+elem(unorderedPair(unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), '0), unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))))), '<=)
+
+
   val uni1, leq1, meet1, join1, not1 = variable
 
   extension (left: Term)
