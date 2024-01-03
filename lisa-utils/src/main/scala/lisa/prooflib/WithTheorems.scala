@@ -314,7 +314,7 @@ trait WithTheorems {
         else this
 
       def andThen2(using line: sourcecode.Line, file: sourcecode.File)
-                  (tactic: (ip: InnerProof) ?=> Fact => ip.ProofStep): ProofTacticJudgement =
+                  (tactic: (ip: InnerProof) ?=> ProofStep => ip.ProofStep): ProofTacticJudgement =
         if !this.isValid then this
         else
           TacticSubproof(using self): // AR needed ?

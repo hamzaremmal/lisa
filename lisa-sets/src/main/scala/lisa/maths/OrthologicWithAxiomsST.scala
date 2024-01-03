@@ -242,10 +242,10 @@ object OrthologicWithAxiomsST extends lisa.Main:
   }
 
 
-  val meetInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x u y) ∈ U) {
+  val meetInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x n y) ∈ U) {
     sorry
   }
-  val joinInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x n y) ∈ U) {
+  val joinInU = Theorem((isO, x ∈ U /\ y ∈ U) |- (x u y) ∈ U) {
     sorry
   }
   val notInU = Theorem((isO, x ∈ U) |- !x ∈ U) {
@@ -472,6 +472,51 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       val premises = isO +: inU(termsInU.toSeq*)
 
+      val chacheInU = mMap[Term, Any]() // TODO!
+
+      def provedInU(using proof: lib.Proof)(t: Term): Boolean = proveInU(t).isValid
+
+      def proveInU(using proof: lib.Proof)(t: Term): proof.ProofTacticJudgement =
+        val p = assume(premises*)
+        t match
+
+          case x1 if termsInU contains x1 =>
+            TacticSubproof:
+              have(x1 ∈ U) by Weakening(p)
+
+          case Not(x1) =>
+            proveInU(x1) andThen2 { lastStep =>
+              have(!x1 ∈ U) by Cut(lastStep, notInU of (x := x1))
+            }
+
+          case Meet(x1, y1) =>
+            proveInU(x1) andThen { s1 =>
+              proveInU(y1) andThen2 { s2 =>
+                have(x1 ∈ U /\ y1 ∈ U) by RightAnd(s1, s2)
+                have((x1 n y1) ∈ U) by Cut(lastStep, meetInU of(x := x1, y := y1))
+              }
+            }
+
+          case Join(x1, y1) =>
+            proveInU(x1) andThen { s1 =>
+              proveInU(y1) andThen2 { s2 =>
+                have(x1 ∈ U /\ y1 ∈ U) by RightAnd(s1, s2)
+                have((x1 u y1) ∈ U) by Cut(lastStep, joinInU of(x := x1, y := y1))
+              }
+            }
+
+          case other => proof.InvalidProofTactic(s"Could not prove $other ∈ $U") // RN?
+
+      end proveInU
+
+//      inline def DischargeAsInU(xs: Term*) =
+//        inline xs match
+//          case Seq() =>
+//          case x +: xs =>
+//            Discharge(have(proveInU(x)))
+//            DischargeAsInU(xs)
+
+
       extension (a: Annotated)
         def pos1: Term = a match
           case L(t) => t case R(t) => /(t) case N => `1`
@@ -525,7 +570,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
       R N
       * */
 
-      extension (s: Sequent)
+      extension (s: Sequent) // RM
         def toString2 = "\nleft:" + s.left.map(f => s"\n\t$f") + "\nright:" + s.right.map(f => s"\n\t$f")
 
       // prove isO /\ ... in universe |- gamma delta
@@ -540,6 +585,11 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
           case (L(x1), R(y1)) if x1 == y1 =>
             have(inU(x1) |- (x1 <= y1)) by Restate.from(hyp of (x := x1))
+//            val s1 = have(proveInU(x1))
+//            have(x1 ∈ U |- x1 <= y1) by Weakening(hyp of (x := x1))
+//            andThen(Discharge(s1))
+////            have(x1 <= y1) by Cut(s1, hyp of (x := x1))
+
 
           /** Deconstructing L **/
 
@@ -551,7 +601,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
           // Weaken
           case (L(x1), delta) if proved(L(x1), N) =>
             val s1 = have(prove(L(x1), N))
-            have(s1.bot.left |- x1 <= deltaF) by Cut(s1, weaken1 of (x := x1, y := deltaF))
+            have(x1 <= deltaF) by Cut(s1, weaken1 of (x := x1, y := deltaF))
 
           // LeftNot
           case (L(Not(x1)), delta) if proved(R(x1), delta) =>
@@ -605,7 +655,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
             val s1 = have(prove(gamma, R(x1)))
             val s2 = have(prove(gamma, R(y1)))
             have(s1.bot.left ++ s2.bot.left |- gammaF <= (x1 n y1)) by
-              Tautology.from(s1, s2, rightAnd of(x := gammaF, y := x1, z := y1)) // IMPROVE use Cut
+              Tautology.from(s1, s2, rightAnd of(x := gammaF, y := x1, z := y1)) // IMPROVE by using Cut
 
           // RightOr
           case (gamma, R(Join(x1, y1))) if proved(gamma, R(x1)) =>
@@ -632,35 +682,28 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       end proveNoC
 
-      val chacheInU = mMap[Term, Any]() // TODO!
-
-      def proveInU(using proof: lib.Proof)(t: Term): proof.ProofTacticJudgement = TacticSubproof:
-        val p = assume(premises*)
-
-        t match
-
-          case x1 if termsInU contains x =>
-            have(x1 ∈ U) by Weakening(p)
-
-          case Not(x1) =>
-            proveInU(x1) andThen2 { lastStep =>
-              have(!x1 ∈ U) by Cut(lastStep, notInU of (x := x1))
-            }
-
-          case Meet(x1, y1) =>
-            proveInU(x1) andThen { s1 =>
-              proveInU(y1) andThen2 { s2 =>
-                have(x1 ∈ U /\ y1 ∈ U) by RightAnd(s1, s2)
-                have((x1 n y1) ∈ U) by Cut(lastStep, meetInU of (x := x1, y := y1))
-              }
-            }
-
-          case t => return proof.InvalidProofTactic(s"Could not prove $t ∈ $U") // RN?
+      def dischargeInU(using proof: lib.Proof): proof.ProofTacticJudgement =
 
         ???
-      end proveInU
 
-      prove(left, right)
+      prove(left, right) andThen2 { s0 =>
+
+        val toDischarge = s0.bot.left.collect {
+          case in(x1, `U`) if !termsInU.contains(x1) => x1
+        }
+
+        if toDischarge.isEmpty then
+          have(s0.bot) by Tautology.from(s0) // FIX
+        else
+//          val s1 = have(proveInU(toDischarge.head))
+//          have(s0.bot) by Tautology.from(s0) // FIX
+//          andThen(Discharge(s1)) // by Restate.from(lastStep) // RM
+
+          val fs = toDischarge.toSeq.map { xi => have(proveInU(xi)) }
+          have(s0.bot) by Tautology.from(s0) // FIX
+          andThen(Discharge(fs *))
+      }
+
     end withParameters
 
   end RestateWithAxioms
@@ -669,10 +712,16 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val testp1 = Theorem(isO +: inU(z) |- z <= z) {
     have(thesis) by RestateWithAxioms.apply
   }
-//  val testp3a = Theorem(isO +: inU(x) |- `0` <= x) {
+
+  val testp11 = Theorem(isO +: inU(z) |- !z <= !z) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+//  val testp3a = Theorem(isO +: inU(x) |- `0` <= x) { // TODO !!!
 //    have(thesis) by RestateWithAxioms.apply
 //  }
 //  val testp3b
+
   val testp4a = Theorem(isO +: inU(x, y) |- (x n y) <= x) {
     have(thesis) by RestateWithAxioms.apply
   }
@@ -685,31 +734,27 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val testp5b = Theorem(isO +: inU(x, y) |- y <= (x u y)) {
     have(thesis) by RestateWithAxioms.apply
   }
-  val testp7a = Theorem(isO +: inU(x, !x) |- x <= !(!x)) {
+
+  val testp7a = Theorem(isO +: inU(x) |- x <= !(!x)) {
     have(thesis) by RestateWithAxioms.apply
   }
-  val testp7b = Theorem(isO +: inU(x, !x) |- !(!x) <= x) {
+  val testp7b = Theorem(isO +: inU(x) |- !(!x) <= x) {
     have(thesis) by RestateWithAxioms.apply
   }
-  val testp9a = Theorem(isO +: inU(x, !x, (x n !x), !(x n !x)) |- (x n !x) <= `0`) {
+  val testp9a = Theorem(isO +: inU(x) |- (x n !x) <= `0`) {
     have(thesis) by RestateWithAxioms.apply
   }
-  val testp9b = Theorem(isO +: inU(x, !x, (x u !x), !(x u !x)) |- `1` <= (x u !x)) {
+  val testp9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) {
     have(thesis) by RestateWithAxioms.apply
   }
 
 
 /*
-
 The proof proves
-elem(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), 'U)           inU(x n !x)
-elem(app('not, app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x)))), 'U);   inU(!(x n !x))
-⊢
-elem(unorderedPair(unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), '0), unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))))), '<=)
-
+elem('z, 'U); isOrthollatice('U, '<=, 'n, 'u, 'not, '0, '1) ⊢ elem('z, 'U)
 instead of claimed
-⊢
-elem(unorderedPair(unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), '0), unorderedPair(app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))), app('n, unorderedPair(unorderedPair('x, app('not, 'x)), unorderedPair('x, 'x))))), '<=)
+isOrthollatice('U, '<=, 'n, 'u, 'not, '0, '1); elem('z, 'U) ⊢ elem(unorderedPair(unorderedPair('z, 'z), unorderedPair('z, 'z)), '<=)
+
 
 
   val uni1, leq1, meet1, join1, not1 = variable
