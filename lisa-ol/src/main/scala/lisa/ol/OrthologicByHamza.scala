@@ -21,10 +21,10 @@ object OrthologicByHamza extends lisa.Main {
   // ==============================================================================================
 
   given zero2term: Conversion[0, Term] with
-    inline def apply(x: 0): Term = zero
+    override inline def apply(x: 0): Term = zero
 
   given one2term: Conversion[1, Term] with
-    inline def apply(x: 1): Term = one
+    override inline def apply(x: 1): Term = one
 
   extension (left: Term)
     inline def u(right: Term): Term = OrthologicByHamza.join(left, right)
@@ -437,24 +437,54 @@ object OrthologicByHamza extends lisa.Main {
 
   // TODO HR : WRITE THE ALGORITHM HERE
 
+  object ProofWithAxioms extends ProofTactic {
+
+    def withAxioms(using lib: library.type, proof: lib.Proof)(axioms: Set[Formula])(bot: Sequent): proof.ProofTacticJudgement = {
+      if bot.left.nonEmpty || bot.right.size != 1 then proof.InvalidProofTactic("ProofWithAxioms can oly prove sequents of the form `() |- lhs <= rhs`")
+      else
+        bot.right.head match
+          case And(lhs, rhs) =>
+            TacticSubproof:
+              have(lhs /\ rhs) by RightAnd(have(lhs) by withAxioms(axioms), have(rhs) by withAxioms(axioms))
+          case Or(lhs, rhs) =>
+            // have(lhs \/ rhs) by RightOr(have(lhs) by withAxioms(axioms), have(rhs) by withAxioms(axioms))
+            proof.InvalidProofTactic("ProofWithAxioms form `() |- lhs \\/ rhs` not implemented yet")
+          case leq(`one`, rhs) =>
+            // 1- Try to prove with Contraction
+            val contraction = withAxioms(axioms)(!rhs <= rhs)
+            if contraction.isValid then
+              contraction
+            else
+              proof.InvalidProofTactic("ProofWithAxioms form `() |- 1 <= rhs` not implemented yet")
+          case leq(lhs, `zero`) =>
+            proof.InvalidProofTactic("ProofWithAxioms form `() |- lhs <= 0` not implemented yet")
+          case leq(neg2(lhs), rhs) =>
+            proof.InvalidProofTactic("ProofWithAxioms form `() |- ¬lhs <= rhs` not implemented yet")
+          case leq(lhs, neg2(rhs)) =>
+            proof.InvalidProofTactic("ProofWithAxioms form `() |- lhs <= ¬rhs` not implemented yet")
+          case leq(lhs, rhs) =>
+            proof.InvalidProofTactic("ProofWithAxioms form `() |- lhs <= rhs` not implemented yet")
+          case _ =>
+            proof.InvalidProofTactic("""
+                |ProofWithAxioms can oly prove sequents of the form :
+                |- `() |- lhs <= rhs`
+                |- `() |- (lhs1 <= rhs1) /\ (lhs2 <= rhs2)`
+                |- `() |- (lhs1 <= rhs1) \/ (lhs2 <= rhs2)`
+                |""".stripMargin)
+    }
+
+  }
+
   // ==============================================================================================
   // ========================================== EXAMPLE ===========================================
   // ==============================================================================================
 
   private val example_01 = Theorem(!x <= !x) {
-    val step1 = have(x <= x) by Tautology.from(HYP)
-    have(thesis) by Tautology.from(step1, RIGHT_NOT_1 of (y := x))
+    have(thesis) by ProofWithAxioms.withAxioms(Set.empty)
   }
 
   private val example_02 = Theorem((x n (!x u y)) <= y) {
-
-    val step1 = have(1 <= (!x u y)) subproof {
-      val step1 = have((!x u y) <= (!x u y)) by Rewrite(HYP of (x := (!x u y)))
-      val step2 = have(((!x u y) n x) <= (!x u y)) by Tautology.from(step1, LEFT_AND_2 of (x := (!x u y), y := (!x u y), z := x))
-      sorry
-    }
-
-    sorry
+    have(thesis) by ProofWithAxioms.withAxioms(Set.empty)
   }
 
 }
