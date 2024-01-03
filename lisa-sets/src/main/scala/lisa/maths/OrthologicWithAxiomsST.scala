@@ -338,7 +338,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     sorry
   }
 
-  val cut = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) {
+  val cut = Theorem(isO +: inU(x, y, z) :+ (x <= y) /\ (y <= z) |- (x <= z)) {
 //    have(thesis) by Tautology.from(p2InU)
     sorry
   }
@@ -486,7 +486,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
       val axFormulas: Set[Term] = axioms
 //        .flatMap(Set(_, _)).collect { case L(x) => x case R(x) => x }
-        .flatMap { case Leq(l, r) => Set(l, r) }.filterNot(Set(`0`, `1`))
+        .flatMap { case Leq(l, r) => Set(l, r) }.filterNot(Set(`0`, `1`)) // AR not exhaustive (flatMap)
 
       val chacheInU = mMap[Term, Any]() // TODO!
 
@@ -550,6 +550,12 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
             cache.addOne((gamma, delta), proof.InvalidProofTactic(s"Starting prove($gamma, $delta)"))
             val res: proof.ProofTacticJudgement = proveNoC(gamma, delta)
+            res match
+              case proof.ValidProofTactic(bot, _, _) =>
+                val expected = gamma.pos1 <= delta.pos2
+                assert(bot.right.size == 1, s"${bot.right - expected}")
+                assert(bot.right.head == expected, s"\n${bot.right.head} \n!= \n$expected \n$gamma $delta")
+              case _ =>
             cache.addOne((gamma, delta), res)
 
             ident -= 1
@@ -610,7 +616,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
           // Weaken
           case (L(x1), delta) if proved(L(x1), N) =>
             val s1 = have(prove(L(x1), N))
-            have(x1 <= deltaF) by Cut(s1, weaken1 of (x := x1, y := deltaF))
+            have(s1.bot.left ++ inU(x1, deltaF) |- x1 <= deltaF) by
+              Cut.withParameters(x1 <= `0`)(s1, weaken1 of (x := x1, y := deltaF))
 
           // LeftNot
           case (L(Not(x1)), delta) if proved(R(x1), delta) =>
@@ -653,7 +660,11 @@ object OrthologicWithAxiomsST extends lisa.Main:
           // Weaken
           case (gamma, R(x1)) if proved(N, R(x1)) =>
             val s1 = have(prove(N, R(x1)))
-            have(s1.bot.left ++ inU(gammaF, x1) |- gammaF <= x1) by Cut(s1, weaken2 of (x := gammaF, y := x1))
+            assert(s1.bot.right.head == `1` <= x1)
+
+            have(s1.bot.left ++ inU(gammaF, x1) |- gammaF <= x1) by
+//              Cut(s1, weaken2 of (x := gammaF, y := x1))
+              Cut.withParameters(`1` <= x1)(s1, weaken2 of (x := gammaF, y := x1)) // FIX
 
           // RightNot
           case (gamma, R(Not(x1))) if proved(gamma, L(x1)) =>
@@ -689,15 +700,21 @@ object OrthologicWithAxiomsST extends lisa.Main:
           case (gamma, delta) if axFormulas.exists(x1 => proved(gamma, R(x1)) && proved(L(x1), delta)) =>
             LazyList.from(axFormulas)
               .map { x1 => (x1, (prove(gamma, R(x1)), prove(L(x1), delta))) }
+//              .collectFirst { case (x1, (s1: proof.ValidProofTactic, s2: proof.ValidProofTactic)) => // FIX
               .collectFirst { case (x1, (s1, s2)) if s1.isValid && s2.isValid =>
 
-                have((gammaF <= x1) /\ (x1 <= deltaF)) by RightAnd(have(s1), have(s2))
-                have(gammaF <= deltaF) by Cut(lastStep, cut of (x := gammaF, y := x1, z := deltaF))
+                val prem = s1.asInstanceOf[proof.ValidProofTactic].bot.left ++ s2.asInstanceOf[proof.ValidProofTactic].bot.left
+                val s3 = have(prem |- (gammaF <= x1) /\ (x1 <= deltaF)) by RightAnd(have(s1), have(s2))
+                val s4 = cut of (x := gammaF, y := x1, z := deltaF)
+                val goal: Sequent = prem ++ inU(gammaF, x1, deltaF) |- gammaF <= deltaF
+//                Cut.apply(s3, s4)(goal)
+                have(goal) by Cut.withParameters((gammaF <= x1) /\ (x1 <= deltaF))(s3, s4)
+//                have(goal) by Cut(s3, s4)
 
               }.get
 
           // Ax REVIEW needed !?
-          case _ if axioms contains (deltaF <= gammaF) => ???
+          case _ if axioms contains (delta.pos1 <= gamma.pos2) => ???
 
           case (gamma, delta) => return proof.InvalidProofTactic(s"No rules applied to $gamma, $delta") // RN?
 
@@ -767,11 +784,31 @@ object OrthologicWithAxiomsST extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   }
 
-  RestateWithAxioms.log = true
-
   val test5 = Theorem(isO +: inU(x) :+ (`1` <= x) |- !x <= `0`) {
     have(thesis) by RestateWithAxioms.apply
   }
+
+//  RestateWithAxioms.log = true
+
+  // TODO rm inU(0, 1)
+  val testPaperExample = Theorem(isO +: inU(x, z, `0`, `1`) :+ (`1` <= (x n (!x u z))) |- `1` <= z) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  val testP9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  val test10 = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+  val test11 = Theorem(isO +: inU(x, y, z) :+ ((x u y) <= z) |- x <= z) {
+    have(thesis) by RestateWithAxioms.apply
+  }
+
+
+
 
 /*
 
