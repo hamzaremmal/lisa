@@ -3,6 +3,7 @@ package lisa.maths
 import collection.mutable.Map as mMap
 import lisa.fol.FOL as F
 import lisa.maths.settheory.SetTheory.*
+import lisa.automation.kernel.CommonTactics.Definition
 import lisa.prooflib.Library
 import lisa.prooflib.ProofTacticLib.{ProofSequentTactic, ProofTactic}
 
@@ -18,7 +19,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val v, w, x, y, z = variable
 
   // needed for subst in defs from maths.SetTheory
-  val f, t, a, r = variable
+  val f, t, a, b, r = variable
 
   extension(left: Term)
     def <=(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsST.<=)
@@ -226,19 +227,36 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   def inU(xs: Term*): Seq[F.Formula] = xs.map(_ ∈ U)
 
-  val appInDom = Theorem((functionFrom(f, U, T), (x ∈ U)) |- (app(f, x) ∈ T)) {
-    assume(functionFrom(f, U, T))
+  val appInCodomain = Theorem((functionFrom(f, U, T), (x ∈ U)) |- (app(f, x) ∈ T)) {
+    assume(functionFrom(f, U, T), (x ∈ U))
 
-    val s1 = have(f ∈ setOfFunctions(U, T)) by Tautology.from(functionFrom.definition of (x := U, y := T))
+    val functionalOverU = have(functionalOver(f, U)) subproof {
+      val s1 = have(f ∈ setOfFunctions(U, T)) by Tautology.from(functionFrom.definition of (x := U, y := T))
 
-    val s2 = have(∀(t, in(t, setOfFunctions(U, T)) <=> (in(t, powerSet(cartesianProduct(U, T))) /\ functionalOver(t, U)))) by InstantiateForall(setOfFunctions(U, T))(setOfFunctions.definition of (x := U, y := T))
-    thenHave(in(f, setOfFunctions(U, T)) <=> (in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U))) by InstantiateForall(f)
-//    have(in(f, setOfFunctions(U, T)) <=> (in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U))) by InstantiateForall(setOfFunctions(U, T), f)(setOfFunctions.definition of (x := U, y := T)) // ASK
+      have(∀(t, in(t, setOfFunctions(U, T)) <=> (in(t, powerSet(cartesianProduct(U, T))) /\ functionalOver(t, U)))) by Definition(setOfFunctions, setOfFunctionsUniqueness)(U, T)
+      thenHave(in(f, setOfFunctions(U, T)) <=> (in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U))) by InstantiateForall(f)
 
-    have(in(f, powerSet(cartesianProduct(U, T))) /\ functionalOver(f, U)) by Tautology.from(lastStep, s1)
+      have(thesis) by Tautology.from(lastStep, s1)
+    }
 
+    val appInRange = have(app(f, x) ∈ relationRange(f)) subproof {
 
-    sorry
+      have(pair(x, app(f, x)) ∈ f) by Tautology.from(functionalOverU, functionalOverApplication of (x := U, a := x, b := app(f, x)))
+      val s1 = thenHave(∃(a, pair(a, app(f, x)) ∈ f)) by RightExists
+
+      have(∀(t, in(t, relationRange(f)) <=> ∃(a, in(pair(a, t), f)))) by Definition(relationRange, relationRangeUniqueness)(f)
+      val s2 = thenHave((app(f, x) ∈ relationRange(f)) <=> ∃(a, in(pair(a, app(f, x)), f))) by InstantiateForall(app(f, x))
+
+      have(thesis) by Tautology.from(s1, s2)
+    }
+
+    val inRangeImpliesInCodomain = have(z ∈ relationRange(f) |- z ∈ T) subproof {
+      have(relationRange(f) ⊆ T) by Tautology.from(functionImpliesRangeSubsetOfCodomain of (x := U, y := T))
+      thenHave(∀(z, (z ∈ relationRange(f)) ==> (z ∈ T))) by Substitution.ApplyRules(subsetAxiom of (x := relationRange(f), y := T, z := app(f, x)))
+      thenHave(thesis) by InstantiateForall(z)
+    }
+
+    have(thesis) by Tautology.from(appInRange, inRangeImpliesInCodomain of (z := app(f, x)))
   }
 
 
@@ -249,28 +267,8 @@ object OrthologicWithAxiomsST extends lisa.Main:
     sorry
   }
   val notInU = Theorem((isO, x ∈ U) |- !x ∈ U) {
-//    assume(isO +: isInUs *)
-//    val s1 = have(functionalOver(not, U)) by Tautology.from(isOrthollatice.definition, p0.definition)
-//    val s2 = have(relationDomain(not) === U) by Tautology.from(s1, functionalOver.definition of (f := not, x := U))
-//
-//    val s3 = have((relationDomain(not) === U) <=> (∀(t, in(t, U) <=> ∃(a, in(pair(t, a), not))))) by
-//      InstantiateForall(U)(relationDomain.definition of (r := not)) // AR simplify ?
-//
-//    have(∀(t, in(t, U) <=> ∃(a, in(pair(t, a), not)))) by Tautology.from(s2, s3)
-//    thenHave(in(/(x), U) <=> ∃(a, in(pair(/(x), a), not))) by InstantiateForall(/(x))
-//
-////    thenHave(in(/(x), U) <=> in(pair(/(x), a), not)) by (/(x))
-//
-//    have(pair(x, app()))
-//
-////    have(∀(t, in(t, U) <=> ∃(a, in(pair(t, a), r))))
-////    have(∀(t, in(t, z) <=> ∃(a, in(pair(t, a), r))))
-//
-////    have((app(not, x) === y) <=> ((functional(not) /\ in(x, relationDomain(f))) ==> in(pair(x, z), f)) /\ ((!functional(f) \/ !in(x, relationDomain(f))) ==> (z === ∅))) by
-////      InstantiateForall(U)(relationDomain.definition of (r := not)) // AR simplify ?
-//
-//    have(in(app(not, x), U))
-    sorry
+    have(isO |- functionFrom(not, U, U)) by Tautology.from(isOrthollatice.definition, p0.definition)
+    have(thesis) by Tautology.from(lastStep, appInCodomain of (f := not, T := U))
   }
 
 
