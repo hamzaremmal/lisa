@@ -1039,109 +1039,81 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   end RestateWithAxioms
 
+  // ==============================================================================================
+  // ======================================== TESTS ===============================================
+  // ==============================================================================================
 
-  val testp1 = Theorem(isO +: inU(z) |- z <= z) {
+  val testp1 = Theorem(isO +: inU(z) |- z <= z) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testp1
 
-  val testp11 = Theorem(isO +: inU(z) |- !z <= !z) {
+  val testp11 = Theorem(isO +: inU(z) |- !z <= !z) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testp11
 
 //  val testp3a = Theorem(isO +: inU(x) |- `0` <= x) { // TODO !!!
 //    have(thesis) by RestateWithAxioms.apply
 //  }
 //  val testp3b
 
-  val testp4a = Theorem(isO +: inU(x, y) |- (x n y) <= x) {
+  val testp4a = Theorem(isO +: inU(x, y) |- (x n y) <= x) :
     have(thesis) by RestateWithAxioms.apply
-  }
-  val testp4b = Theorem(isO +: inU(x, y) |- x <= (x u y)) {
-    have(thesis) by RestateWithAxioms.apply
-  }
-  val testp5a = Theorem(isO +: inU(x, y) |- (x n y) <= y) {
-    have(thesis) by RestateWithAxioms.apply
-  }
-  val testp5b = Theorem(isO +: inU(x, y) |- y <= (x u y)) {
-    have(thesis) by RestateWithAxioms.apply
-  }
+  end testp4a
 
-  val testp7a = Theorem(isO +: inU(x) |- x <= !(!x)) {
+  val testp4b = Theorem(isO +: inU(x, y) |- x <= (x u y)) :
     have(thesis) by RestateWithAxioms.apply
-  }
-  val testp7b = Theorem(isO +: inU(x) |- !(!x) <= x) {
+  end testp4b
+
+  val testp5a = Theorem(isO +: inU(x, y) |- (x n y) <= y) :
     have(thesis) by RestateWithAxioms.apply
-  }
-  val testp9a = Theorem(isO +: inU(x) |- (x n !x) <= `0`) {
+  end testp5a
+
+  val testp5b = Theorem(isO +: inU(x, y) |- y <= (x u y)) :
     have(thesis) by RestateWithAxioms.apply
-  }
-  val testp9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) {
+  end testp5b
+
+  val testp7a = Theorem(isO +: inU(x) |- x <= !(!x)) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testp7a
+
+  val testp7b = Theorem(isO +: inU(x) |- !(!x) <= x) :
+    have(thesis) by RestateWithAxioms.apply
+  end testp7b
+
+  val testp9a = Theorem(isO +: inU(x) |- (x n !x) <= `0`) :
+    have(thesis) by RestateWithAxioms.apply
+  end testp9a
 
 
-
-  val test4 = Theorem(isO +: inU(x, y, z) |- (x n y) <= (y u z)) {
+  val testp9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testp9b
 
-  val test5 = Theorem(isO +: inU(x) :+ (`1` <= x) |- !x <= `0`) {
+  val test4 = Theorem(isO +: inU(x, y, z) |- (x n y) <= (y u z)) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end test4
+
+  val test5 = Theorem(isO +: inU(x) :+ (`1` <= x) |- !x <= `0`) :
+    have(thesis) by RestateWithAxioms.apply
+  end test5
 
 //  RestateWithAxioms.log = true
 
   // TODO rm inU(0, 1)
-  val testPaperExample = Theorem(isO +: inU(x, z, `0`, `1`) :+ (`1` <= (x n (!x u z))) |- `1` <= z) {
+  val testPaperExample = Theorem(isO +: inU(x, z, `0`, `1`) :+ (`1` <= (x n (!x u z))) |- `1` <= z) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testPaperExample
 
-  val testP9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) {
+  val testP9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end testP9b
 
-  val test10 = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) {
+  val test10 = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) :
     have(thesis) by RestateWithAxioms.apply
-  }
+  end test10
 
-  val test11 = Theorem(isO +: inU(x, y, z) :+ ((x u y) <= z) |- x <= z) {
+  val test11 = Theorem(isO +: inU(x, y, z) :+ ((x u y) <= z) |- x <= z) :
     have(thesis) by RestateWithAxioms.apply
-  }
-
-
-
-
-/*
-
-
-
-  val uni1, leq1, meet1, join1, not1 = variable
-
-  extension (left: Term)
-    def leq1(right: Term): Formula = in(pair(left, right), OrthologicWithAxiomsST.leq1)
-    def meet1(right: Term): Term = app(OrthologicWithAxiomsST.meet1, pair(left, right))
-    def join1(right: Term): Term = app(OrthologicWithAxiomsST.join1, pair(left, right))
-
-  // AR needs inline ?
-  def neg1(t: Term): Term = app(OrthologicWithAxiomsST.not1, t)
-
-  val isO1 = isOrthollatice(uni1, leq1, meet1, join1, not1)
-
-  def RestateWithAxioms1(using proof: library.Proof): F.Sequent => proof.ProofTacticJudgement =
-    RestateWithAxioms.withParameters(uni1, leq1, meet1, join1, not1)
-
-  val testp1 = Theorem(isO1 /\ (z ∈ uni1) |- (z leq1 z)) {
-    have(thesis) by RestateWithAxioms1
-  }
-
-  val testp4a = Theorem(isO1 /\ (x ∈ uni1) /\ (y ∈ uni1) |- ((x meet1 y) leq1 x)) {
-    have(thesis) by RestateWithAxioms1
-  }
-
-//  val test2 = Theorem(isO1 /\ (x ∈ uni1) /\ (y ∈ uni1) |- ((x meet1 y) leq1 x)) {
-//    have(thesis) by RestateWithAxioms(uni1, leq1, meet1, join1, not1)
-//  }
-*/
-
+  end test11
 
 end OrthologicWithAxiomsST
