@@ -19,7 +19,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
   val v, w, x, y, z = variable
 
   // needed for subst in defs from maths.SetTheory
-  val f, t, a, b, r = variable
+  val a, b, c, f, r, t = variable
 
   // ==============================================================================================
   // ========================================== DSL ===============================================
@@ -260,20 +260,30 @@ object OrthologicWithAxiomsST extends lisa.Main:
   end cartesianProductElement
 
   /** STATUS: DONE */
-  val meetIsClosed = Lemma(isO +: inU(x, y) |- (x u y) ∈ U):
-    val step1 = have(isO |- functionFrom(u, U x U, U)) by Tautology.from(ortholattice.definition)
-    val step2 = have((functionFrom(u, U x U, U), pair(x, y) ∈ (U x U)) |- (x u y) ∈ U) by Restate.from(appInCodomain of(f := u, S := (U x U), T := U, x := pair(x, y)))
-    val step3 = have((isO, pair(x, y) ∈ (U x U)) |- (x u y) ∈ U) by Cut.withParameters(functionFrom(u, (U x U), U))(step1, step2)
-    have(thesis) by Cut.withParameters(pair(x, y) ∈ (U x U))(cartesianProductElement, step3)
-  end meetIsClosed
+  val joinIsClosed = Lemma((isO, (x ∈ U) /\ (y ∈ U)) |- (x u y) ∈ U):
+    val step1 = have((isO, x ∈ U, y ∈ U) |- (x u y) ∈ U) subproof:
+      val step1 = have(isO |- functionFrom(u, U x U, U)) by Tautology.from(ortholattice.definition)
+      val step2 = have((functionFrom(u, U x U, U), pair(x, y) ∈ (U x U)) |- (x u y) ∈ U) by Restate.from(appInCodomain of(f := u, S := (U x U), T := U, x := pair(x, y)))
+      val step3 = have((isO, pair(x, y) ∈ (U x U)) |- (x u y) ∈ U) by Cut.withParameters(functionFrom(u, (U x U), U))(step1, step2)
+      have(thesis) by Cut.withParameters(pair(x, y) ∈ (U x U))(cartesianProductElement, step3)
+    val step2 = have((x ∈ U) /\ (y ∈ U) |- (x ∈ U, y ∈ U)) subproof:
+      have((x ∈ U, y ∈ U) |- (x ∈ U, y ∈ U)) by Restate
+      thenHave(thesis) by LeftAnd
+    have(thesis) by Tautology.from(step1, step2)
+  end joinIsClosed
 
   /** STATUS: DONE */
-  val joinIsClosed = Lemma(isO +: inU(x, y) |- (x n y) ∈ U):
-    val step1 = have(isO |- functionFrom(n, U x U, U)) by Tautology.from(ortholattice.definition)
-    val step2 = have((functionFrom(n, U x U, U), pair(x, y) ∈ (U x U)) |- (x n y) ∈ U) by Restate.from(appInCodomain of(f := n, S := (U x U), T := U, x := pair(x, y)))
-    val step3 = have((isO, pair(x, y) ∈ (U x U)) |- (x n y) ∈ U) by Cut.withParameters(functionFrom(n, (U x U), U))(step1, step2)
-    have(thesis) by Cut.withParameters(pair(x, y) ∈ (U x U))(cartesianProductElement, step3)
-  end joinIsClosed
+  val meetIsClosed = Lemma((isO, (x ∈ U) /\ (y ∈ U)) |- (x n y) ∈ U):
+    val step1 = have((isO, x ∈ U, y ∈ U) |- (x n y) ∈ U) subproof:
+      val step1 = have(isO |- functionFrom(n, U x U, U)) by Tautology.from(ortholattice.definition)
+      val step2 = have((functionFrom(n, U x U, U), pair(x, y) ∈ (U x U)) |- (x n y) ∈ U) by Restate.from(appInCodomain of(f := n, S := (U x U), T := U, x := pair(x, y)))
+      val step3 = have((isO, pair(x, y) ∈ (U x U)) |- (x n y) ∈ U) by Cut.withParameters(functionFrom(n, (U x U), U))(step1, step2)
+      have(thesis) by Cut.withParameters(pair(x, y) ∈ (U x U))(cartesianProductElement, step3)
+    val step2 = have((x ∈ U) /\ (y ∈ U) |- (x ∈ U, y ∈ U)) subproof:
+      have((x ∈ U, y ∈ U) |- (x ∈ U, y ∈ U)) by Restate
+      thenHave(thesis) by LeftAnd
+    have(thesis) by Tautology.from(step1, step2)
+  end meetIsClosed
 
   /** STATUS: DONE */
   val negationIsClosed = Lemma((isO, x ∈ U) |- !x ∈ U):
@@ -428,7 +438,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     val step2 = have((x ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) subproof:
       have((x ∈ U, (x n !x) ∈ U, 0 ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Restate.from(cut of (x := x, y := (x n !x), z := 0))
       have((x ∈ U, (x n !x) ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Cut.withParameters(0 ∈ U)(zeroInOrtholattice, lastStep)
-      have((x ∈ U, !x ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Cut.withParameters((x n !x) ∈ U)(joinIsClosed of (y := !x), lastStep)
+      have((x ∈ U, !x ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Tautology.from(meetIsClosed of (y := !x), lastStep) //Cut.withParameters((x n !x) ∈ U)(joinIsClosed of (y := !x), lastStep)
       have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
     have(thesis) subproof:
       have((x ∈ U, x <= !x, (x n !x) <= 0) |- x <= 0) by Cut.withParameters(x <= (x n !x))(step1, step2)
@@ -446,7 +456,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     val step2 = have((x ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) subproof:
       have((x ∈ U, (x u !x) ∈ U, 1 ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Restate.from(cut of (x := 1, y := (x u !x), z := x))
       have((x ∈ U, (x u !x) ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Cut.withParameters(1 ∈ U)(oneInOrtholattice, lastStep)
-      have((x ∈ U, !x ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Cut.withParameters((x u !x) ∈ U)(meetIsClosed of (y := !x), lastStep)
+      have((x ∈ U, !x ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Tautology.from(joinIsClosed of (y := !x), lastStep) //Cut.withParameters((x u !x) ∈ U)(meetIsClosed of (y := !x), lastStep)
       have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
     have(thesis) subproof:
       have((x ∈ U, !x <= x, 1 <= (x u !x)) |- 1 <= x) by Cut.withParameters((x u !x) <= x)(step1, step2)
@@ -467,7 +477,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     val step2 = have(isO +: inU(x, (x n y), z) :+ ((x n y) <= x) :+ (x <= z) |- (x n y) <= z) subproof :
       have(thesis) by Restate.from(cut of (x := (x n y), y := x))
     val step3 = have(isO +: inU(x, y, z) :+ ((x n y) <= x) :+ (x <= z) |- (x n y) <= z) subproof :
-      have(thesis) by Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
+      have(thesis) by Tautology.from(meetIsClosed, step2) // Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
     have(thesis) by Cut.withParameters((x n y) <= x)(step1, step3)
   end leftAnd1
 
@@ -485,7 +495,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     val step2 = have(isO +: inU((x n y), y, z) :+ ((x n y) <= y) :+ (y <= z) |- (x n y) <= z) subproof:
       have(thesis) by Restate.from(cut of(x := (x n y)))
     val step3 = have(isO +: inU(x, y, z) :+ ((x n y) <= y) :+ (y <= z) |- (x n y) <= z) subproof :
-      have(thesis) by Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
+      have(thesis) by Tautology.from(meetIsClosed, step2)// Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
     have(thesis) by Cut.withParameters((x n y) <= y)(step1, step3)
   end leftAnd2
 
@@ -537,7 +547,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
       have(isO +: inU(x, y, (y u z)) :+ (x <= y) :+ (y <= (y u z)) |- x <= (y u z)) by Restate.from(cut of (z := (y u z)))
       thenHave(thesis) by Weakening
     val step3 = have(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= (y u z)) |- x <= (y u z)) subproof:
-      have(thesis) by Cut.withParameters((y u z) ∈ U)(meetIsClosed of (x := y, y := z), step2)
+      have(thesis) by Tautology.from(joinIsClosed of (x := y, y := z), step2)// Cut.withParameters((y u z) ∈ U)(meetIsClosed of (x := y, y := z), step2)
     have(thesis) by Cut.withParameters(y <= (y u z))(step1, step3)
   end rightOr1
 
@@ -555,7 +565,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
       have(isO +: inU(x, z, (y u z)) :+ (x <= z) :+ (z <= (y u z)) |- x <= (y u z)) by Restate.from(cut of (y:= z, z := (y u z)))
       thenHave(thesis) by Weakening
     val step3 = have(isO +: inU(x, y, z) :+ (x <= z) :+ (z <= (y u z)) |- x <= (y u z)) subproof :
-      have(thesis) by Cut.withParameters((y u z) ∈ U)(meetIsClosed of(x := y, y := z), step2)
+      have(thesis) by Tautology.from(joinIsClosed of(x := y, y := z), step2) // Cut.withParameters((y u z) ∈ U)(meetIsClosed of(x := y, y := z), step2)
     have(thesis) by Cut.withParameters(z <= (y u z))(step1, step3)
   end rightOr2
 
@@ -1114,77 +1124,267 @@ object OrthologicWithAxiomsST extends lisa.Main:
   // ======================================== TESTS ===============================================
   // ==============================================================================================
 
-  val testp1 = Theorem(isO +: inU(z) |- z <= z) :
+  // ================================ CAN IT PROVE THE AXIOMS ? ===================================
+
+  val proveP1 = Theorem((isO, x ∈ U) |- x <= x):
     have(thesis) by RestateWithAxioms.apply
-  end testp1
+  end proveP1
 
-  val testp11 = Theorem(isO +: inU(z) |- !z <= !z) :
+  // TODO: FIX Left-hand side of second premise does not contain φ as claimed.
+  /*val proveP2 = Theorem((isO, x ∈ U, y ∈ U, z ∈ U, x <= y, y <= z) |- x <= z):
     have(thesis) by RestateWithAxioms.apply
-  end testp11
+  end proveP2*/
 
-//  val testp3a = Theorem(isO +: inU(x) |- `0` <= x) { // TODO !!!
-//    have(thesis) by RestateWithAxioms.apply
-//  }
-//  val testp3b
-
-  val testp4a = Theorem(isO +: inU(x, y) |- (x n y) <= x) :
+  // TODO: FIX No rules applied to L(0), R(x)
+  /*val proveP3A = Theorem((isO, x ∈ U) |- 0 <= x):
     have(thesis) by RestateWithAxioms.apply
-  end testp4a
+  end proveP3A*/
 
-  val testp4b = Theorem(isO +: inU(x, y) |- x <= (x u y)) :
+  // TODO: FIX No rules applied to L(x), R(1)
+  /*val proveP3B = Theorem((isO, x ∈ U) |- x <= 1):
     have(thesis) by RestateWithAxioms.apply
-  end testp4b
+  end proveP3B*/
 
-  val testp5a = Theorem(isO +: inU(x, y) |- (x n y) <= y) :
+  val proveP4A = Theorem((isO, x ∈ U, y ∈ U) |- (x n y) <= x):
     have(thesis) by RestateWithAxioms.apply
-  end testp5a
+  end proveP4A
 
-  val testp5b = Theorem(isO +: inU(x, y) |- y <= (x u y)) :
+  val proveP5A = Theorem((isO, x ∈ U, y ∈ U) |- (x n y) <= y):
     have(thesis) by RestateWithAxioms.apply
-  end testp5b
+  end proveP5A
 
-  val testp7a = Theorem(isO +: inU(x) |- x <= !(!x)) :
+  val proveP4B = Theorem((isO, x ∈ U, y ∈ U) |- x <= (x u y)):
     have(thesis) by RestateWithAxioms.apply
-  end testp7a
+  end proveP4B
 
-  val testp7b = Theorem(isO +: inU(x) |- !(!x) <= x) :
+  val proveP5B = Theorem((isO, x ∈ U, y ∈ U) |- y <= (x u y)):
     have(thesis) by RestateWithAxioms.apply
-  end testp7b
+  end proveP5B
 
-  val testp9a = Theorem(isO +: inU(x) |- (x n !x) <= `0`) :
+  val proveP6A = Theorem((isO, x ∈ U, y ∈ U, z ∈ U, x <= y, x <= z) |- x <= (y n z)):
     have(thesis) by RestateWithAxioms.apply
-  end testp9a
+  end proveP6A
 
-
-  val testp9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) :
+  val proveP6B = Theorem((isO, x ∈ U, y ∈ U, z ∈ U, x <= z, y <= z) |- (x u y) <= z):
     have(thesis) by RestateWithAxioms.apply
-  end testp9b
+  end proveP6B
 
-  val test4 = Theorem(isO +: inU(x, y, z) |- (x n y) <= (y u z)) :
+  val proveP7A = Theorem((isO, x ∈ U) |- x <= !(!x)):
     have(thesis) by RestateWithAxioms.apply
-  end test4
+  end proveP7A
 
-  val test5 = Theorem(isO +: inU(x) :+ (`1` <= x) |- !x <= `0`) :
+  val proveP7B = Theorem((isO, x ∈ U) |- !(!x) <= x):
     have(thesis) by RestateWithAxioms.apply
-  end test5
+  end proveP7B
 
-//  RestateWithAxioms.log = true
-
-  // TODO rm inU(0, 1)
-  val testPaperExample = Theorem(isO +: inU(x, z, `0`, `1`) :+ (`1` <= (x n (!x u z))) |- `1` <= z) :
+  // TODO: FIX Left-hand side of second premise does not contain φ as claimed.
+  /*val proveP8 = Theorem((isO, x ∈ U, y ∈ U,  x <= y) |- !y <= !x):
     have(thesis) by RestateWithAxioms.apply
-  end testPaperExample
+  end proveP8*/
 
-  val testP9b = Theorem(isO +: inU(x) |- `1` <= (x u !x)) :
+  val proveP9A = Theorem((isO, x ∈ U) |- (x n !x) <= 0):
     have(thesis) by RestateWithAxioms.apply
-  end testP9b
+  end proveP9A
 
-  val test10 = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) :
+  val proveP9B = Theorem((isO, x ∈ U) |- 1 <= (x u !x)):
     have(thesis) by RestateWithAxioms.apply
-  end test10
+  end proveP9B
 
-  val test11 = Theorem(isO +: inU(x, y, z) :+ ((x u y) <= z) |- x <= z) :
+  // ================================== CAN IT DO REWRITES ? ======================================
+
+  // == ALL SORT OF REWRITES OF P1
+
+  val proveRewriteP1_1 = Theorem((isO, z ∈ U) |- z <= z):
     have(thesis) by RestateWithAxioms.apply
-  end test11
+  end proveRewriteP1_1
+
+  val proveRewriteP1_2 = Theorem((isO, z ∈ U) |- !z <= !z):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP1_2
+
+  val proveRewriteP1_3 = Theorem((isO, x ∈ U, y ∈ U) |- (x u y) <= (x u y)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP1_3
+
+  val proveRewriteP1_4 = Theorem((isO, x ∈ U, y ∈ U) |- (x n y) <= (x n y)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP1_4
+
+  val proveRewriteP1_5 = Theorem((isO, x ∈ U, y ∈ U) |- !(x u y) <= !(x u y)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP1_5
+
+  val proveRewriteP1_6 = Theorem((isO, x ∈ U, y ∈ U) |- !(x n y) <= !(x n y)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP1_6
+
+  // == ALL SORT OF REWRITES OF P4A
+
+  val proveRewriteP4A_1 = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_1
+
+  val proveRewriteP4A_2 = Theorem((isO, a ∈ U, b ∈ U) |- (!a n b) <= !a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_2
+
+  val proveRewriteP4A_3 = Theorem((isO, a ∈ U, b ∈ U) |- (a n !b) <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_3
+
+  val proveRewriteP4A_4 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a u b) n c) <= (a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_4
+
+  val proveRewriteP4A_5 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n (b u c)) <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_5
+
+  val proveRewriteP4A_6 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a n b) n c) <= (a n b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_6
+
+  val proveRewriteP4A_7 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n (b n c)) <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4A_7
+
+  // == ALL SORT OF REWRITES OF P5A
+
+  // TODO
+
+  // == ALL SORT OF REWRITES OF P4B
+
+  // TODO
+
+  // == ALL SORT OF REWRITES OF P5B
+
+  // TODO
+
+  // == ALL SORT OF REWRITES OF P7A
+
+  val proveRewriteP7A_1 = Theorem((isO, a ∈ U) |- a <= !(!a)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7A_1
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP7A_2 = Theorem((isO, a ∈ U) |- !a <= !(!(!a))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7A_2*/
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP7A_3 = Theorem((isO, a ∈ U, b ∈ U) |- (a u b) <= !(!(a u b))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7A_3*/
+
+  // == ALL SORT OF REWRITES OF P7B
+
+  // TODO : PRIORITY 1
+
+  // =================================== NON-TRIVIAL TESTS ========================================
+
+  // == associativity
+
+  // TODO: FIX No rules applied to L(a), R(b)
+  /*val meetIsAssociative_1 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n (b n c)) <= ((a n b) n c)):
+    have(thesis) by RestateWithAxioms.apply
+  end meetIsAssociative_1*/
+
+  // TODO: FIX No rules applied to L(a), R(app(n, unorderedPair(unorderedPair(b, c), unorderedPair(b, b))))
+  /*val meetIsAssociative_2 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a n b) n c) <= (a n (b n c))):
+    have(thesis) by RestateWithAxioms.apply
+  end meetIsAssociative_2*/
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic.
+  /*val joinIsAssociative_1 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a u (b u c)) <= ((a u b) u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end joinIsAssociative_1*/
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic.
+  /*val joinIsAssociative_2 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a u b) u c) <= (a u (b u c))):
+    have(thesis) by RestateWithAxioms.apply
+  end joinIsAssociative_2*/
+
+  // == commutativity
+
+  // TODO: FIX No rules applied to L(b), R(a)
+  /*val meetIsCommutative = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= (b n a)):
+    have(thesis) by RestateWithAxioms.apply
+  end meetIsCommutative*/
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic.
+  /*val joinIsCommutative = Theorem((isO, a ∈ U, b ∈ U) |- (a u b) <= (b u a)):
+    have(thesis) by RestateWithAxioms.apply
+  end joinIsCommutative*/
+
+  // == De Morgan's laws
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val DeMorganLaw_1 = Theorem((isO, a ∈ U, b ∈ U) |- !(a u b) <= (!a n !b)):
+    have(thesis) by RestateWithAxioms.apply
+  end DeMorganLaw_1*/
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic
+  /*val DeMorganLaw_2 = Theorem((isO, a ∈ U, b ∈ U) |- (!a n !b) <= !(a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end DeMorganLaw_2*/
+
+  // TODO: FIX No rules applied to L(a), R(b)
+  /*val DeMorganLaw_3 = Theorem((isO, a ∈ U, b ∈ U) |- !(a n b) <= (!a u !b)):
+    have(thesis) by RestateWithAxioms.apply
+  end DeMorganLaw_3*/
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val DeMorganLaw_4 = Theorem((isO, a ∈ U, b ∈ U) |- (!a u !b) <= !(a n b)):
+    have(thesis) by RestateWithAxioms.apply
+  end DeMorganLaw_4*/
+
+  // == idempotency
+
+  // TODO: FIX The final proof was rejected by LISA's logical kernel. This may be due to a faulty proof computation or lack of verification by a proof tactic.
+  /*val joinIsIdempotent_1 = Theorem((isO, x ∈ U) |- (x u x) <= x):
+    have(thesis) by RestateWithAxioms.apply
+  end joinIsIdempotent_1*/
+
+  val joinIsIdempotent_2 = Theorem((isO, x ∈ U) |- x <= (x u x)):
+    have(thesis) by RestateWithAxioms.apply
+  end joinIsIdempotent_2
+
+  val meetIsIdempotent_1 = Theorem((isO, x ∈ U) |- (x n x) <= x):
+    have(thesis) by RestateWithAxioms.apply
+  end meetIsIdempotent_1
+
+  // TODO: FIX The final proof was rejected by LISA's logical kernel. This may be due to a faulty proof computation or lack of verification by a proof tactic.
+  /*val meetIsIdempotent_2 = Theorem((isO, x ∈ U) |- x <= (x n x)):
+    have(thesis) by RestateWithAxioms.apply
+  end meetIsIdempotent_2*/
+
+  // == absorption
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic
+  /*val absorption_1 = Theorem((isO, x ∈ U, y ∈ U) |- (x u (x n y)) <= x):
+    have(thesis) by RestateWithAxioms.apply
+  end absorption_1 */
+
+  // TODO: FIX Left-hand side of second premise does not contain φ as claimed.
+  /*val absorption_2 = Theorem((isO, x ∈ U, y ∈ U) |- x <= (x u (x n y))):
+    have(thesis) by RestateWithAxioms.apply
+  end absorption_2*/
+
+  // TODO: FIX Left-hand side of second premise does not contain φ as claimed
+  /*val absorption_3 = Theorem((isO, x ∈ U, y ∈ U) |- (x n (x u y)) <= x):
+    have(thesis) by RestateWithAxioms.apply
+  end absorption_3*/
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic.
+  /*val absorption_4 = Theorem((isO, x ∈ U, y ∈ U) |- x <= (x n (x u y))):
+    have(thesis) by RestateWithAxioms.apply
+  end absorption_4*/
+
+  // == from paper
+
+  // TODO: FIX Left-hand side of second premise does not contain φ as claimed.
+  /*val fromPaper = Theorem((isO, x ∈ U, y ∈ U, 1 <= (x n (!x u y))) |- 1 <= y) :
+    have(thesis) by RestateWithAxioms.apply
+  end fromPaper*/
 
 end OrthologicWithAxiomsST
