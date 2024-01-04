@@ -1149,13 +1149,13 @@ object OrthologicWithAxiomsST extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   end proveP4A
 
-  val proveP5A = Theorem((isO, x ∈ U, y ∈ U) |- (x n y) <= y):
-    have(thesis) by RestateWithAxioms.apply
-  end proveP5A
-
   val proveP4B = Theorem((isO, x ∈ U, y ∈ U) |- x <= (x u y)):
     have(thesis) by RestateWithAxioms.apply
   end proveP4B
+
+  val proveP5A = Theorem((isO, x ∈ U, y ∈ U) |- (x n y) <= y):
+    have(thesis) by RestateWithAxioms.apply
+  end proveP5A
 
   val proveP5B = Theorem((isO, x ∈ U, y ∈ U) |- y <= (x u y)):
     have(thesis) by RestateWithAxioms.apply
@@ -1218,6 +1218,54 @@ object OrthologicWithAxiomsST extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   end proveRewriteP1_6
 
+  // == ALL SORT OF REWRITES OF P2
+
+  // TODO
+
+  // ALL SORT OF REWRITES OF P3A
+
+  // TODO: FIX No rules applied to L(0), R(a)
+  /*val proveRewriteP3A_1 = Theorem((isO, a ∈ U) |- 0 <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3A_1*/
+
+  // TODO: FIX No rules applied to L(0), R(app(not, a))
+  /*val proveRewriteP3A_2 = Theorem((isO, a ∈ U) |- 0 <= !a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3A_2*/
+
+  // TODO: FIX No rules applied to L(0), R(app(u, unorderedPair(unorderedPair(a, b), unorderedPair(a, a))))
+  /*val proveRewriteP3A_3 = Theorem((isO, a ∈ U, b ∈ U) |- 0 <= (a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3A_3*/
+
+  // TODO: FIX No rules applied to L(0), R(app(n, unorderedPair(unorderedPair(a, b), unorderedPair(a, a))))
+  /*val proveRewriteP3A_4 = Theorem((isO, a ∈ U, b ∈ U) |- 0 <= (a n b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3A_4*/
+
+  // == ALL SORT OF REWRITES OF P3B
+
+  // TODO: FIX No rules applied to L(a), R(1)
+  /*val proveRewriteP3B_1 = Theorem((isO, a ∈ U) |- a <= 1):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3B_1*/
+
+  // TODO: FIX No rules applied to L(app(not, a)), R(1)
+  /*val proveRewriteP3B_2 = Theorem((isO, a ∈ U) |- !a <= 1):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3B_2*/
+
+  // TODO: FIX No rules applied to L(app(u, unorderedPair(unorderedPair(a, b), unorderedPair(a, a)))), R(1)
+  /*val proveRewriteP3B_3 = Theorem((isO, a ∈ U, b ∈ U) |- (a u b) <= 1):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3B_3*/
+
+  // TODO: FIX L(app(n, unorderedPair(unorderedPair(a, b), unorderedPair(a, a)))), R(1)
+  /*val proveRewriteP3B_4 = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= 1):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP3B_4*/
+
   // == ALL SORT OF REWRITES OF P4A
 
   val proveRewriteP4A_1 = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= a):
@@ -1248,15 +1296,105 @@ object OrthologicWithAxiomsST extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   end proveRewriteP4A_7
 
-  // == ALL SORT OF REWRITES OF P5A
-
-  // TODO
-
   // == ALL SORT OF REWRITES OF P4B
 
-  // TODO
+  val proveRewriteP4B_1 = Theorem((isO, a ∈ U, b ∈ U) |- a <= (a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_1
+
+  val proveRewriteP4B_2 = Theorem((isO, a ∈ U, b ∈ U) |- !a <= (!a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_2
+
+  val proveRewriteP4B_3 = Theorem((isO, a ∈ U, b ∈ U) |- a <= (a u !b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_3
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic
+  /*val proveRewriteP4B_4 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a u b) <= ((a u b) u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_4*/
+
+  val proveRewriteP4B_5 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- a <= (a u (b u c))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_5
+
+  // TODO: FIX No rules applied to L(a), R(b)
+  /*val proveRewriteP4B_6 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n b) <= ((a n b) u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_6*/
+
+  val proveRewriteP4B_7 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- a <= (a u (b n c))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP4B_7
+
+  // == ALL SORT OF REWRITES OF P5A
+
+  val proveRewriteP5A_1 = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= b):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_1
+
+  val proveRewriteP5A_2 = Theorem((isO, a ∈ U, b ∈ U) |- (a n !b) <= !b):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_2
+
+  val proveRewriteP5A_3 = Theorem((isO, a ∈ U, b ∈ U) |- (!a n b) <= b):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_3
+
+  val proveRewriteP5A_4 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n (b u c)) <= (b u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_4
+
+  val proveRewriteP5A_5 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a u b) n c) <= c):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_5
+
+  val proveRewriteP5A_6 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (a n (b n c)) <= (b n c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_6
+
+  val proveRewriteP5A_7 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- ((a n b) n c) <= c):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5A_7
 
   // == ALL SORT OF REWRITES OF P5B
+
+  val proveRewriteP5B_1 = Theorem((isO, a ∈ U, b ∈ U) |- b <= (a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_1
+
+  val proveRewriteP5B_2 = Theorem((isO, a ∈ U, b ∈ U) |- !b <= (a u !b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_2
+
+  val proveRewriteP5B_3 = Theorem((isO, a ∈ U, b ∈ U) |- b <= (!a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_3
+
+  // TODO: FIX The statement may be incorrect or not provable within propositional logic
+  /*val proveRewriteP5B_4 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (b u c) <= (a u (b u c))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_4*/
+
+  val proveRewriteP5B_5 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- c <= ((a u b) u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_5
+
+  // TODO: FIX No rules applied to L(b), R(c)
+  /*val proveRewriteP5B_6 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- (b n c) <= (a u (b n c))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_6*/
+
+  val proveRewriteP5B_7 = Theorem((isO, a ∈ U, b ∈ U, c ∈ U) |- c <= ((a n b) u c)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP5B_7
+
+  // == ALL SORT OF REWRITES OF P6A
+
+  // TODO
+
+  // == ALL SORT OF REWRITES OF P6B
 
   // TODO
 
@@ -1276,9 +1414,87 @@ object OrthologicWithAxiomsST extends lisa.Main:
     have(thesis) by RestateWithAxioms.apply
   end proveRewriteP7A_3*/
 
+  // TODO: FIX No rules applied to L(a), R(b)
+  /*val proveRewriteP7A_4 = Theorem((isO, a ∈ U, b ∈ U) |- (a n b) <= !(!(a n b))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7A_4*/
+
   // == ALL SORT OF REWRITES OF P7B
 
-  // TODO : PRIORITY 1
+  val proveRewriteP7B_1 = Theorem((isO, a ∈ U) |- !(!a) <= a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7B_1
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP7B_2 = Theorem((isO, a ∈ U) |- !(!(!a)) <= !a):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7B_2*/
+
+  val proveRewriteP7B_3 = Theorem((isO, a ∈ U, b ∈ U) |- !(!(a u b)) <= (a u b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7B_3
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP7B_4 = Theorem((isO, a ∈ U, b ∈ U) |- !(!(a n b)) <= (a n b)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP7B_4*/
+
+  // == ALL SORT OF REWRITES OF P8
+
+  // TODO: ADD TESTS
+
+  // == ALL SORT OF REWRITES OF P9A
+
+  val proveRewriteP9A_1 = Theorem((isO, a ∈ U) |- (a n !a) <= 0):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9A_1
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP9A_2 = Theorem((isO, a ∈ U) |- (!a n !(!a)) <= 0):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9A_2*/
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  // NOTE: SIMPLIFY DOUBLE NEGATION IN `proveRewriteP9A_2`
+  /*val proveRewriteP9A_3 = Theorem((isO, a ∈ U) |- (!a n a) <= 0):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9A_3*/
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP9A_4 = Theorem((isO, a ∈ U, b ∈ U) |- ((a u b) n !((a u b))) <= 0):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9A_4*/
+
+  // TODO: FIX No rules applied to L(a), R(b)
+  /*val proveRewriteP9A_5 = Theorem((isO, a ∈ U, b ∈ U) |- ((a n b) n !((a n b))) <= 0):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9A_5*/
+
+  // == ALL SORT OF REWRITES OF P9B
+
+  val proveRewriteP9B_1 = Theorem((isO, a ∈ U) |- 1 <= (a u !a)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9B_1
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP9B_2 = Theorem((isO, a ∈ U) |- 1 <= (!a u !(!a))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9B_2*/
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  // NOTE: SIMPLIFY DOUBLE NEGATION IN `proveRewriteP9B_2`
+  /*val proveRewriteP9B_3 = Theorem((isO, a ∈ U) |- 1 <= (!a u a)):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9B_3*/
+
+  val proveRewriteP9B_4 = Theorem((isO, a ∈ U, b ∈ U) |- 1 <= ((a u b) u !(a u b))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9B_4
+
+  // TODO: FIX Inferred cut pivot is not a singleton set.
+  /*val proveRewriteP9B_5 = Theorem((isO, a ∈ U, b ∈ U) |- 1 <= ((a n b) u !(a n b))):
+    have(thesis) by RestateWithAxioms.apply
+  end proveRewriteP9B_5*/
 
   // =================================== NON-TRIVIAL TESTS ========================================
 
