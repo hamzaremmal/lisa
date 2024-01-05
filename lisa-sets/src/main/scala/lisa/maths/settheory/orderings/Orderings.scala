@@ -1,5 +1,5 @@
 package lisa.maths.settheory.orderings
 
-object Orderings {
+trait Orderings {
   // export everything in this package
 }

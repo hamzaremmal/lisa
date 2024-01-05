@@ -2,18 +2,13 @@ package lisa.ol
 
 import lisa.automation.kernel.CommonTactics.Definition
 import lisa.fol.FOL.*
-import lisa.maths.settheory.SetTheory.*
-import lisa.fol.FOLHelpers.variable
+import lisa.maths.settheory.SetTheory
+import lisa.automation.Tautology
+import lisa.automation.Substitution
+import lisa.prooflib.BasicStepTactic.*
+import lisa.prooflib.SimpleDeducedSteps.*
 
-trait OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
-
-  predicates.foreach(s => addSymbol(s))
-  functions.foreach(s => addSymbol(s))
-  addSymbol(emptySet)
-  addSymbol(app)
-  addSymbol(cartesianProduct)
-  addSymbol(functionFrom)
-  addSymbol(relationBetween)
+trait OrthologicWithAxiomsLibrary extends lisa.prooflib.Library with SetTheory:
 
   // ==============================================================================================
   // ======================================== SYMBOLS =============================================
@@ -245,7 +240,7 @@ trait OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
 
   /** STATUS: DONE */
   val appInCodomain = Lemma((functionFrom(f, S, T), x ∈ S) |- (app(f, x) ∈ T)):
-    /*assume(functionFrom(f, S, T), (x ∈ S))
+    assume(functionFrom(f, S, T), (x ∈ S))
 
     val functionalOverU = have(functionalOver(f, S)) subproof :
       val s1 = have(f ∈ setOfFunctions(S, T)) by Tautology.from(functionFrom.definition of(x := S, y := T))
@@ -266,17 +261,15 @@ trait OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
       thenHave(thesis) by InstantiateForall(z)
     end inRangeImpliesInCodomain
 
-    have(thesis) by Tautology.from(appInRange, inRangeImpliesInCodomain of (z := app(f, x)))*/
-    sorry
+    have(thesis) by Tautology.from(appInRange, inRangeImpliesInCodomain of (z := app(f, x)))
   end appInCodomain
 
   /** STATUS: DONE */
   val cartesianProductElement = Lemma((x ∈ U, y ∈ U) |- pair(x, y) ∈ (U x U)):
-    /*val step1 = have(pair(x, y) ∈ (U x U) <=> x ∈ U /\ y ∈ U) by Restate.from(pairInCartesianProduct of(a := x, b := y, x := U, y := U))
+    val step1 = have(pair(x, y) ∈ (U x U) <=> x ∈ U /\ y ∈ U) by Restate.from(pairInCartesianProduct of(a := x, b := y, x := U, y := U))
     assume(x ∈ U)
     assume(y ∈ U)
-    have(thesis) by Tautology.from(step1)*/
-    sorry
+    have(thesis) by Tautology.from(step1)
   end cartesianProductElement
 
   /** STATUS: DONE */

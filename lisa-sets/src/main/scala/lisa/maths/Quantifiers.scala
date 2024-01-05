@@ -1,9 +1,17 @@
 package lisa.maths
 
+import lisa.automation.Tautology
+import lisa.automation.Substitution
+import lisa.automation.Tableau
+import lisa.prooflib.SimpleDeducedSteps.*
+import lisa.prooflib.BasicStepTactic.*
+
 /**
  * Implements theorems about first-order logic.
  */
-object Quantifiers extends lisa.Main {
+trait Quantifiers extends lisa.prooflib.Library with lisa.SetTheoryLibrary {
+  
+  import lisa.fol.FOL.{*, given}
 
   private val x = variable
   private val y = variable

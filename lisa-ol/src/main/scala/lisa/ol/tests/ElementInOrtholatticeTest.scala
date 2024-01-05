@@ -1,8 +1,6 @@
 package lisa.ol
 package tests
 
-import lisa.SetTheoryLibrary.∈
-
 object ElementInOrtholatticeTest extends OrthologicWithAxiomsMain with OrthologicWithAxiomsLibrary:
 
   val elemInOrtho1 = Theorem(ortholattice(U, <=, n, u, not, 0, 1) |- 0 ∈ U):

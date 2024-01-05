@@ -8,6 +8,8 @@ import lisa.prooflib.ProofTacticLib.ProofTactic
 import lisa.utils.KernelHelpers.{_, given}
 import lisa.utils.{_, given}
 
+import lisa.fol.FOL as F
+
 import scala.collection.mutable.Stack as stack
 
 /**
@@ -38,7 +40,6 @@ abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.Pro
   val K = lisa.utils.K
   val SC: SequentCalculus.type = K.SC
   private[prooflib] val F = lisa.fol.FOL
-  import F.{given}
 
   private[prooflib] var last: Option[JUSTIFICATION] = None
 
@@ -75,7 +76,7 @@ abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.Pro
     import K.*
     val LambdaTermTerm(vars, body) = expression
 
-    val out: VariableLabel = VariableLabel(freshId((vars.map(_.id) ++ body.schematicTermLabels.map(_.id)).toSet, "y"))
+    val out: VariableLabel = VariableLabel(F.freshId((vars.map(_.id) ++ body.schematicTermLabels.map(_.id)).toSet, "y"))
     val proof: SCProof = simpleFunctionDefinition(expression, out)
     theory.functionDefinition(symbol, LambdaTermFormula(vars, out === body), out, proof, out === body, Nil)
   }

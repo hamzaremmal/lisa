@@ -1,13 +1,18 @@
 package lisa.maths
+package settheory
 
 //import lisa.automation.settheory.SetTheoryTactics.*
 //import lisa.maths.Quantifiers.*
 //import lisa.automation.Substitution
 
+import lisa.prooflib.SimpleDeducedSteps.*
+import lisa.prooflib.BasicStepTactic.*
+import lisa.automation.Tautology
 import lisa.automation.settheory.SetTheoryTactics.*
-import lisa.maths.settheory.SetTheory.*
 
-object InductiveSets extends lisa.Main {
+trait InductiveSets extends lisa.prooflib.Library with SetTheory {
+
+  //export lisa.fol.FOL.{*, given}
 
   // var defs
   private val a = variable

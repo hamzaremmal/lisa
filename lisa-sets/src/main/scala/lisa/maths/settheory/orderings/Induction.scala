@@ -1,15 +1,14 @@
-package lisa.maths.settheory.orderings
+package lisa.maths
+package settheory
+package orderings
 
+import lisa.prooflib.BasicStepTactic.*
+import lisa.prooflib.SimpleDeducedSteps.*
+import lisa.automation.Tautology
+import lisa.automation.Substitution
 import lisa.automation.settheory.SetTheoryTactics.*
-import lisa.maths.Quantifiers.*
-import lisa.maths.settheory.SetTheory.*
-import lisa.maths.settheory.orderings.InclusionOrders.*
-import Ordinals.*
-import lisa.maths.settheory.orderings.PartialOrders.*
-import lisa.maths.settheory.orderings.Segments.*
-import lisa.maths.settheory.orderings.WellOrders.*
 
-object Induction extends lisa.Main {
+trait Induction extends lisa.prooflib.Library with SetTheory with Quantifiers with InclusionOrders with Ordinals with PartialOrders with Segments with WellOrders {
 
   // var defs
   private val a = variable

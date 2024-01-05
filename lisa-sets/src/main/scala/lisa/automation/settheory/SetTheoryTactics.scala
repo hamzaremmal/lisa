@@ -1,6 +1,6 @@
 package lisa.automation.settheory
 
-import lisa.SetTheoryLibrary.{_, given}
+import lisa.SetTheoryLibrary
 import lisa.fol.FOL.{_, given}
 import lisa.kernel.proof.SequentCalculus as SC
 import lisa.maths.settheory.SetTheory
@@ -15,6 +15,7 @@ object SetTheoryTactics {
   private val x = variable
   private val y = variable
   private val z = variable
+  private val φ = predicate[2]
   private val schemPred = predicate[1]
 
   /**
@@ -41,15 +42,16 @@ object SetTheoryTactics {
    */
   object UniqueComprehension extends ProofTactic {
     def apply(using
-        proof: Proof,
+        lib: SetTheory,
+        proof: lib.Proof,
         line: sourcecode.Line,
         file: sourcecode.File,
         om: OutputManager
     )(originalSet: Term, separationPredicate: LambdaTF[2])( // TODO dotty forgets that Term <:< LisaObject[Term]
         bot: Sequent
     ): proof.ProofTacticJudgement = {
+      import lib.{in, have}
       require(separationPredicate.bounds.length == 2) // separationPredicate takes two args
-      given lisa.SetTheoryLibrary.type = lisa.SetTheoryLibrary
       // fresh variable names to avoid conflicts
       val botWithAssumptions = bot ++ (proof.getAssumptions |- ())
       val takenIDs = (botWithAssumptions.freeVariables ++ separationPredicate.body.freeVariables ++ originalSet.freeVariables).map(_.id)
@@ -70,9 +72,9 @@ object SetTheoryTactics {
        * have    () |- ∃! z. t ∈ z <=> (t ∈ x /\ P(t, x))                                    Cut
        */
       val sp = TacticSubproof { // TODO check if isInstanceOf first
-        val existence = have(() |- exists(t1, fprop(t1))) by Weakening(comprehensionSchema of (z -> originalSet, φ -> separationPredicate))
+        val existence = have(() |- exists(t1, fprop(t1))) by Weakening(lib.comprehensionSchema of (z := originalSet , φ := separationPredicate))
 
-        val existsToUnique = have(exists(t1, fprop(t1)) |- existsOne(t1, fprop(t1))) by Weakening(SetTheory.uniqueByExtension of schemPred -> lambda(t2, prop))
+        val existsToUnique = have(exists(t1, fprop(t1)) |- existsOne(t1, fprop(t1))) by Weakening(lib.uniqueByExtension of (schemPred := lambda(t2, prop)))
 
         // assumption elimination
         have(() |- existsOne(t1, fprop(t1))) by Cut(existence, existsToUnique)

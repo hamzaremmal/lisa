@@ -3,7 +3,6 @@ package automation
 
 import scala.collection.mutable
 
-import lisa.maths.settheory.SetTheory.*
 import lisa.fol.FOL.*
 import lisa.prooflib.ProofTacticLib.ProofTactic
 

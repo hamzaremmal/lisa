@@ -1,4 +1,4 @@
-import collection.mutable.Map as mMap
+/*import collection.mutable.Map as mMap
 import lisa.fol.FOL as F
 import lisa.maths.settheory.SetTheory.*
 import lisa.automation.kernel.CommonTactics.Definition
@@ -1673,4 +1673,4 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   // ==
 
-end OrthologicWithAxiomsST
+end OrthologicWithAxiomsST*/

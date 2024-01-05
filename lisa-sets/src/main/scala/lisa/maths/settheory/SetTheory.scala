@@ -1,8 +1,12 @@
-package lisa.maths.settheory
+package lisa.maths
+package settheory
 
+import lisa.prooflib.SimpleDeducedSteps.*
+import lisa.prooflib.BasicStepTactic.*
+import lisa.automation.Tautology
+import lisa.automation.Substitution
 import lisa.automation.kernel.CommonTactics.Definition
 import lisa.automation.settheory.SetTheoryTactics.*
-import lisa.maths.Quantifiers.*
 
 /**
  * Set Theory Library
@@ -14,7 +18,9 @@ import lisa.maths.Quantifiers.*
  * Springer Berlin Heidelberg, 2003.
  * [[https://link.springer.com/book/10.1007/3-540-44761-X]]
  */
-object SetTheory extends lisa.Main {
+trait SetTheory extends lisa.prooflib.Library with lisa.SetTheoryLibrary with Quantifiers {
+
+  export lisa.fol.FOL.{*, given}
 
   // var defs
   private val w = variable
@@ -1384,10 +1390,10 @@ object SetTheory extends lisa.Main {
 
       val elemEmpty = have(in(t, emptySet) <=> (in(t, powerSet(powerSet(setUnion(x, emptySet)))) /\ ∃(a, ∃(b, (t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet))))) subproof {
         val lhs = have(in(t, emptySet) |- (in(t, powerSet(powerSet(setUnion(x, emptySet)))) /\ ∃(a, ∃(b, (t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet))))) by Weakening(
-          emptySet.definition of (x -> t)
+          emptySetAxiom of (x -> t)
         )
 
-        have((t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet) |- in(t, emptySet)) by Weakening(emptySet.definition of (x -> b))
+        have((t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet) |- in(t, emptySet)) by Weakening(emptySetAxiom of (x -> b))
         thenHave(exists(b, (t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet)) |- in(t, emptySet)) by LeftExists
         thenHave(exists(a, exists(b, (t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet))) |- in(t, emptySet)) by LeftExists
         val rhs = thenHave(in(t, powerSet(powerSet(setUnion(x, emptySet)))) /\ exists(a, exists(b, (t === pair(a, b)) /\ in(a, x) /\ in(b, emptySet))) |- in(t, emptySet)) by Weakening
@@ -1411,10 +1417,10 @@ object SetTheory extends lisa.Main {
 
       val elemEmpty = have(in(t, emptySet) <=> (in(t, powerSet(powerSet(setUnion(emptySet, y)))) /\ ∃(a, ∃(b, (t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y))))) subproof {
         val lhs = have(in(t, emptySet) |- (in(t, powerSet(powerSet(setUnion(emptySet, y)))) /\ ∃(a, ∃(b, (t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y))))) by Weakening(
-          emptySet.definition of (x -> t)
+          emptySetAxiom of (x -> t)
         )
 
-        have((t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y) |- in(t, emptySet)) by Weakening(emptySet.definition of (x -> a))
+        have((t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y) |- in(t, emptySet)) by Weakening(emptySetAxiom of (x -> a))
         thenHave(exists(b, (t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y)) |- in(t, emptySet)) by LeftExists
         thenHave(exists(a, exists(b, (t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y))) |- in(t, emptySet)) by LeftExists
         val rhs = thenHave(in(t, powerSet(powerSet(setUnion(emptySet, y)))) /\ exists(a, exists(b, (t === pair(a, b)) /\ in(a, emptySet) /\ in(b, y))) |- in(t, emptySet)) by Weakening
@@ -1975,7 +1981,7 @@ object SetTheory extends lisa.Main {
     have(relationBetween(r, x, y) |- subset(r, cartesianProduct(x, y))) by Tautology.from(relationBetween.definition of (a -> x, b -> y))
     have(relationBetween(r, x, y) |- ∀(t, in(t, r) ==> in(t, cartesianProduct(x, y)))) by Tautology.from(
       lastStep,
-      subset.definition of (x -> r, y -> cartesianProduct(x, y))
+      subsetAxiom of (x -> r, y -> cartesianProduct(x, y))
     )
     thenHave(relationBetween(r, x, y) |- in(t, r) ==> in(t, cartesianProduct(x, y))) by InstantiateForall(t)
     thenHave((relationBetween(r, x, y), in(t, r)) |- in(t, cartesianProduct(x, y))) by Restate
@@ -2028,7 +2034,7 @@ object SetTheory extends lisa.Main {
     thenHave(relationBetween(r, x, y) |- ∀(t, in(t, r) ==> in(t, cartesianProduct(relationDomain(r), relationRange(r))))) by RightForall
     have(relationBetween(r, x, y) |- subset(r, cartesianProduct(relationDomain(r), relationRange(r)))) by Tautology.from(
       lastStep,
-      subset.definition of (x -> r, y -> cartesianProduct(relationDomain(r), relationRange(r)))
+      subsetAxiom of (x -> r, y -> cartesianProduct(relationDomain(r), relationRange(r)))
     )
     have(relationBetween(r, x, y) |- relationBetween(r, relationDomain(r), relationRange(r))) by Tautology.from(
       lastStep,
@@ -2148,7 +2154,7 @@ object SetTheory extends lisa.Main {
       // Use the definitions
       have(relationBetween(f, relationDomain(f), relationRange(f)) |- ∀(x, in(x, f) ==> in(x, cartesianProduct(relationDomain(f), relationRange(f))))) by Tautology.from(
         relationBetween.definition of (r -> f, a -> relationDomain(f), b -> relationRange(f)),
-        subset.definition of (x -> f, y -> cartesianProduct(relationDomain(f), relationRange(f)))
+        subsetAxiom of (x -> f, y -> cartesianProduct(relationDomain(f), relationRange(f)))
       )
       thenHave(relationBetween(f, relationDomain(f), relationRange(f)) |- in(t, f) ==> in(t, cartesianProduct(relationDomain(f), relationRange(f)))) by InstantiateForall(t)
       thenHave((relationBetween(f, relationDomain(f), relationRange(f)), in(t, f)) |- in(t, cartesianProduct(relationDomain(f), relationRange(f)))) by Restate

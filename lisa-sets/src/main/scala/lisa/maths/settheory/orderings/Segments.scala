@@ -1,14 +1,12 @@
-package lisa.maths.settheory.orderings
+package lisa.maths
+package settheory
+package orderings
 
+import lisa.automation.Tautology
+import lisa.prooflib.SimpleDeducedSteps.*
 import lisa.automation.settheory.SetTheoryTactics.*
-import lisa.maths.Quantifiers.*
-import lisa.maths.settheory.SetTheory.*
-import lisa.maths.settheory.orderings.InclusionOrders.*
-import Ordinals.*
-import lisa.maths.settheory.orderings.PartialOrders.*
-import lisa.maths.settheory.orderings.WellOrders.*
 
-object Segments extends lisa.Main {
+trait Segments extends lisa.prooflib.Library with lisa.SetTheoryLibrary with Quantifiers with InclusionOrders with PartialOrders with WellOrders with Ordinals {
 
   // var defs
   private val w = variable
@@ -28,7 +26,7 @@ object Segments extends lisa.Main {
   private val q = variable
   private val f = variable
   private val g = variable
-  private val F = function[1]
+  private val H = function[1]
   private val G = function[2]
 
   private val P = predicate[1]
