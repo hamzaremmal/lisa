@@ -1,6 +1,6 @@
 import lisa.automation.Substitution.{ApplyRules as Substitute}
 
-object Example extends lisa.Main {
+object Example extends lisa.Main with lisa.SetTheoryLibrary {
 
   val x = variable
   val y = variable

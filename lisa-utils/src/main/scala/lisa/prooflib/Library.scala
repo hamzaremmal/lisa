@@ -106,7 +106,7 @@ abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.Pro
    * Prints a short representation of the given theorem or definition
    */
   def show(using om: OutputManager)(thm: JUSTIFICATION) = {
-    if (thm.withSorry) om.output(thm.repr, Console.YELLOW)
+    if thm.withSorry then om.output(thm.repr, Console.YELLOW)
     else om.output(thm.repr, Console.GREEN)
   }
 
