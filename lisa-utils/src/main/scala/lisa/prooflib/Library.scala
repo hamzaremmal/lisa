@@ -28,7 +28,7 @@ abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.Pro
   private[prooflib] val F = lisa.fol.FOL
   import F.{given}
 
-  var last: Option[JUSTIFICATION] = None
+  private[prooflib] var last: Option[JUSTIFICATION] = None
 
   var _withCache: Boolean = false
 
@@ -103,6 +103,12 @@ abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.Pro
   def show(using om: OutputManager): Unit = last match {
     case Some(value) => show(value)
     case None => throw new NoSuchElementException("There is nothing to show: No theorem or definition has been proved yet.")
+  }
+
+  extension (symbol: F.ConstantLabel[?]) {
+    def definition: JUSTIFICATION = {
+      getDefinition(symbol).get
+    }
   }
 
 }

@@ -23,10 +23,10 @@ trait Main extends BasicMain {
   knownDefs.update(powerSet, Some(powerAxiom))
   knownDefs.update(subset, Some(subsetAxiom))
 
-  extension (symbol: ConstantLabel[?]) {
+  /*extension (symbol: ConstantLabel[?]) {
     def definition: JUSTIFICATION = {
       getDefinition(symbol).get
     }
-  }
+  }*/
 
 }
