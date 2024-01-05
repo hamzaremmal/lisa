@@ -83,7 +83,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
     p9a(U, <=, n, not, `0`), p9b(U, <=, u, not, `1`)
   ))
 
-  inline def isO = ortholattice(U, <=, n, u, not, `0`, `1`)
+  inline def isO = ortholattice(U, <=, n, u, not, 0, 1)
 
   // ==============================================================================================
   // =================================== REFORMULATE AXIOMS =======================================
@@ -383,20 +383,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   /** STATUS: DONE */
   val cut = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)) :
-    val impl = have(isO +: inU(x, y, z) |- (x <= y) /\ (y <= z) ==> x <= z) subproof :
-      assume(isO)
-      have(∀(x, x ∈ U ==> ∀(y, y ∈ U ==> ∀(z, z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z))))) by Tautology.from(ortholattice.definition, p2.definition)
-      val step1 = thenHave(x ∈ U ==> ∀(y, y ∈ U ==> ∀(z, z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z)))) by InstantiateForall(x)
-      assume(x ∈ U)
-      have(∀(y, y ∈ U ==> ∀(z, z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z)))) by Tautology.from(step1)
-      val step2 = thenHave(y ∈ U ==> ∀(z, z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z))) by InstantiateForall(y)
-      assume(y ∈ U)
-      have(∀(z, z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z))) by Tautology.from(step2)
-      val step3 = thenHave(z ∈ U ==> (((x <= y) /\ (y <= z)) ==> x <= z)) by InstantiateForall(z)
-      assume(z ∈ U)
-      have(thesis) by Tautology.from(step3)
-    end impl
-    have(thesis) by Tautology.from(impl)
+    have(thesis) by Tautology.from(lemmaForP2)
   end cut
 
   /** STATUS: DONE */
@@ -571,15 +558,7 @@ object OrthologicWithAxiomsST extends lisa.Main:
 
   /** STATUS: DONE */
   val commutRL = Theorem(isO +: inU(x, y) :+ (x <= y) |- !y <= !x) :
-    val impl = have(isO +: inU(x, y) |- x <= y ==> !y <= !x) subproof :
-      assume(isO)
-      have(∀(x, (x ∈ U) ==> ∀(y, (y ∈ U) ==> (x <= y ==> !y <= !x)))) by Tautology.from(ortholattice.definition, p8.definition)
-      val step1 = thenHave((x ∈ U) ==> ∀(y, (y ∈ U) ==> (x <= y ==> !y <= !x))) by InstantiateForall(x)
-      assume(x ∈ U)
-      have(∀(y, (y ∈ U) ==> (x <= y ==> !y <= !x))) by Tautology.from(step1)
-      val step2 = thenHave((y ∈ U) ==> (x <= y ==> !y <= !x)) by InstantiateForall(y)
-      have(thesis) by Tautology.from(step2)
-    have(thesis) by Tautology.from(impl)
+    have(thesis) by Tautology.from(lemmaForP8)
   end commutRL
 
   /** STATUS: DONE */
@@ -621,6 +600,47 @@ object OrthologicWithAxiomsST extends lisa.Main:
   // ==============================================================================================
   // ========================================= TACTICS ============================================
   // ==============================================================================================
+
+  /**
+   * Tactic to prove that an element is in an ortholattice
+   */
+  object ElementInOrtholattice extends ProofTactic:
+    private val meet = OrthologicWithAxiomsST.n
+    private val join = OrthologicWithAxiomsST.u
+    def withParameters(using lib: library.type, proof: lib.Proof)(term: Term)(bot: F.Sequent) : proof.ProofTacticJudgement =
+      term match
+        case `0` =>
+          TacticSubproof:
+            have(bot) by Tautology.from(ortholattice.definition, zeroInOrtholattice)
+        case `1` =>
+          TacticSubproof:
+            have(bot) by Tautology.from(ortholattice.definition, oneInOrtholattice)
+        case app(`not`, x1) =>
+          withParameters(x1)(bot.left |- x1 ∈ U) andThen2 { lastStep =>
+            have(bot.left |- !x1 ∈ U) by Cut.withParameters(x1 ∈ U)(lastStep, negationIsClosed of (x := x1))
+          }
+        case app(`meet`, Pair(left, right)) =>
+          withParameters(left)(bot.left |- left ∈ U) andThen { s1 =>
+            withParameters(right)(bot.left |- right ∈ U) andThen2 { s2 =>
+              have(bot.left |- left ∈ U /\ right ∈ U) by RightAnd(s1, s2)
+              have(bot.left |- (left n right) ∈ U) by Cut(lastStep, meetIsClosed of(x := left, y := right))
+            }
+          }
+        case app(`join`, Pair(left, right)) =>
+          withParameters(left)(bot.left |- left ∈ U) andThen { s1 =>
+            withParameters(right)(bot.left |- right ∈ U) andThen2 { s2 =>
+              have(bot.left |- left ∈ U /\ right ∈ U) by RightAnd(s1, s2)
+              have(bot.left |- (left u right) ∈ U) by Cut(lastStep, joinIsClosed of(x := left, y := right))
+            }
+          }
+        case x if bot.left contains x ∈ U =>
+          TacticSubproof:
+            have(x ∈ U |- x ∈ U) by Restate
+            have(bot) by Weakening(lastStep)
+        case x =>
+          proof.InvalidProofTactic(s"Could not prove $x ∈ $U. Make sure that your sequent has the following form : `(ortholattice, $x ∈ $U, ...) |- ...`")
+    end withParameters
+  end ElementInOrtholattice
 
   object SimpleInstantiateForallIn extends ProofTactic:
 
@@ -1602,5 +1622,57 @@ object OrthologicWithAxiomsST extends lisa.Main:
   /*val fromPaper = Theorem((isO, x ∈ U, y ∈ U, 1 <= (x n (!x u y))) |- 1 <= y) :
     have(thesis) by RestateWithAxioms.apply
   end fromPaper*/
+
+  // == TEST TACTIC : ElementInOrtholattice
+
+  val elemInOrtho1 = Theorem(ortholattice(U, <=, n, u, not, 0, 1) |- 0 ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(0)
+  end elemInOrtho1
+
+  val elemInOrtho2 = Theorem(ortholattice(U, <=, n, u, not, 0, 1) |- 1 ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(1)
+  end elemInOrtho2
+
+  val elemInOrtho3 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U) |- x ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(x)
+  end elemInOrtho3
+
+  val elemInOrtho4 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U) |- !x ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(!x)
+  end elemInOrtho4
+
+  val elemInOrtho5 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (x n y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(x n y)
+  end elemInOrtho5
+
+  val elemInOrtho6 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (x u y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(x u y)
+  end elemInOrtho6
+
+  val elemInOrtho7 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- !(x u y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(!(x u y))
+  end elemInOrtho7
+
+  val elemInOrtho8 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- !(x n y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(!(x n y))
+  end elemInOrtho8
+
+  val elemInOrtho9 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (!x n y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(!x n y)
+  end elemInOrtho9
+
+  val elemInOrtho10 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (x n !y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(x n !y)
+  end elemInOrtho10
+
+  val elemInOrtho11 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (!x n y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(!x n y)
+  end elemInOrtho11
+
+  val elemInOrtho12 = Theorem((ortholattice(U, <=, n, u, not, 0, 1), x ∈ U, y ∈ U) |- (x n !y) ∈ U):
+    have(thesis) by ElementInOrtholattice.withParameters(x n !y)
+  end elemInOrtho12
+
+  // ==
 
 end OrthologicWithAxiomsST
