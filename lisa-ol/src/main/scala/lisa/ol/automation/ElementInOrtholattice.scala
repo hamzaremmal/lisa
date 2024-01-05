@@ -10,10 +10,7 @@ import lisa.prooflib.BasicStepTactic.{TacticSubproof, Weakening}
 import lisa.prooflib.SimpleDeducedSteps.Restate
 
 object ElementInOrtholattice extends ProofTactic:
-
-  private val meet = OrthologicWithAxiomsLibrary.n
-  private val join = OrthologicWithAxiomsLibrary.u
-
+  
   object Singleton:
     def unapply(t: Term): Option[Term] = t match
       case unorderedPair(x1, x2) if x1 == x2 => Some(x1)
@@ -25,8 +22,9 @@ object ElementInOrtholattice extends ProofTactic:
       case _ => None
 
   // NOTE: To force using this tactic with the OrthologicWithAxiomsLibrary, we summon `OrthologicWithAxiomsLibrary` instead of `Library`
-  def withParameters(using lib: OrthologicWithAxiomsLibrary.type, proof: lib.Proof)(term: Term)(bot: Sequent) : proof.ProofTacticJudgement =
-    import lib.{`0`, `1`, not, U, x, y, have, lastStep}
+  def withParameters(using lib: OrthologicWithAxiomsLibrary, proof: lib.Proof)(term: Term)(bot: Sequent) : proof.ProofTacticJudgement =
+    import lib.{`0`, `1`, not, U, n, u, x, y, have, lastStep}
+    val (meet, join) = (n, u)
     term match
       case `0` =>
         TacticSubproof:

@@ -1,4 +1,4 @@
-package lisa.maths
+/*package lisa.maths
 
 import collection.mutable.Map as mMap
 import lisa.kernel.proof.SequentCalculus.SCProofStep
@@ -469,4 +469,4 @@ object OrthologicWithAxiomsI extends lisa.Main:
 
 
 
-end OrthologicWithAxiomsI
+end OrthologicWithAxiomsI*/

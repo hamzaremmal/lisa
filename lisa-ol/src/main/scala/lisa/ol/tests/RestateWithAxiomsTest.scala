@@ -2,9 +2,8 @@ package lisa.ol
 package tests
 
 import lisa.SetTheoryLibrary.∈
-import lisa.ol.OrthologicWithAxiomsLibrary.{n, not, u}
 
-object RestateWithAxiomsTest extends OrthologicWithAxiomsMain:
+object RestateWithAxiomsTest extends OrthologicWithAxiomsMain with OrthologicWithAxiomsLibrary:
 
   // ================================ CAN IT PROVE THE AXIOMS ? ===================================
 

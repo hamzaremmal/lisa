@@ -9,7 +9,14 @@ import lisa.prooflib.ProofTacticLib.ProofTactic
 
 object RestateWithAxioms extends ProofTactic:
 
-  object Singleton:
+  enum Annotated:
+    case L(t: Term)
+    case R(t: Term)
+    case N
+
+  import Annotated.*
+
+  /*object Singleton:
     def unapply(t: Term): Option[Term] = t match
       case unorderedPair(x1, x2) if x1 == x2 => Some(x1)
       case _ => None
@@ -18,12 +25,6 @@ object RestateWithAxioms extends ProofTactic:
     def unapply(t: Term): Option[(Term, Term)] = t match
       case unorderedPair(unorderedPair(x1, y1), Singleton(x2)) if x1 == x2 => Some((x1, y1))
       case _ => None
-
-  enum Annotated:
-    case L(t: Term)
-    case R(t: Term)
-    case N
-  import Annotated.*
 
   // AR
   val leq = OrthologicWithAxiomsLibrary.<=
@@ -51,10 +52,11 @@ object RestateWithAxioms extends ProofTactic:
   object Not:
     def unapply(t: Term): Option[Term] = t match
       case app(`not0`, x) => Some(x)
-      case _ => None
+      case _ => None*/
 
-  def apply(using lib: OrthologicWithAxiomsLibrary.type, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
-    import lib.{isO, inU, U, `0`, `1`}
+  def apply(using lib: OrthologicWithAxiomsLibrary, proof: lib.Proof)(bot: Sequent): proof.ProofTacticJudgement =
+    ???
+    /*import lib.{isO, inU, U, `0`, `1`}
     // TODO better error messages
     if bot.right.size != 1 then
       proof.InvalidProofTactic("Only support goals of the form ??? |- left <= right")
@@ -73,7 +75,7 @@ object RestateWithAxioms extends ProofTactic:
           case (`1`, r) => prove(N, R(r))
           case (r, `1`) =>
           case (l, `0`) =>
-        */
+     */
 
         val termsInU = bot.left.collect { case in(x1, U) => x1 }
 
@@ -91,15 +93,16 @@ object RestateWithAxioms extends ProofTactic:
       // TODO Weakening if bot.left contains more stuff
 
       case _ => proof.InvalidProofTactic("Only support goals of the form () |- left <= right")
-
+     */
   end apply
 
   // IMPROVE such that do not neet to write .apply
   // isOrthollatice(U, <=, n, u, not) |- left <= right
-  def withParameters(using lib: OrthologicWithAxiomsLibrary.type, proof: lib.Proof)
-                    //                      (termsInU: Set[Term], axioms: Set[(Annotated, Annotated)])
-                    (termsInU: Set[Term], axioms: Set[Formula])
-                    (left: Annotated, right: Annotated): proof.ProofTacticJudgement =
+  def withParameters(using lib: OrthologicWithAxiomsLibrary, proof: lib.Proof)
+  //                      (termsInU: Set[Term], axioms: Set[(Annotated, Annotated)])
+  (termsInU: Set[Term], axioms: Set[Formula])(left: Annotated, right: Annotated): proof.ProofTacticJudgement =
+    ???
+    /*
     import lib.{isO, inU, U, `0`, `1`, assume, have, andThen, lastStep, x, y, z}
     val premises = isO +: inU(termsInU.toSeq*)
 
@@ -197,7 +200,7 @@ object RestateWithAxioms extends ProofTactic:
     AR assuming never
     N L
     R N
-    * */
+     * */
 
     extension (s: Sequent) // RM
       def toString2 = "\nleft:" + s.left.map(f => s"\n\t$f") + "\nright:" + s.right.map(f => s"\n\t$f")
@@ -352,7 +355,7 @@ object RestateWithAxioms extends ProofTactic:
         have(s0.bot) by Tautology.from(s0) // FIX
         andThen(Discharge(fs *))
     }
-
+     */
   end withParameters
 
 end RestateWithAxioms

@@ -7,7 +7,7 @@ trait BasicMain {
 
   private val realOutput: String => Unit = println
 
-  given om: OutputManager = new OutputManager {
+  private given om: OutputManager = new OutputManager {
     def finishOutput(exception: Exception): Nothing = {
       log(exception)
       main(Array[String]())

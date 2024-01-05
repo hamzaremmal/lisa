@@ -1,4 +1,4 @@
-package lisa.maths
+/*package lisa.maths
 
 import collection.mutable.Map as mMap
 import lisa.fol.FOL as F
@@ -369,3 +369,4 @@ object OrthologicWithAxioms extends lisa.Main:
   end RestateWithAxioms
 
 end OrthologicWithAxioms
+*/

@@ -1,4 +1,4 @@
-package lisa.maths
+/*package lisa.maths
 
 import lisa.fol.FOL
 import lisa.kernel.proof.SequentCalculus.SCProofStep
@@ -450,4 +450,4 @@ object OrthologicWithAxiomsI2 extends lisa.Main:
   // TODO test with multiple axioms
 
 
-end OrthologicWithAxiomsI2
+end OrthologicWithAxiomsI2*/

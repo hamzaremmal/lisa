@@ -17,9 +17,21 @@ import scala.collection.mutable.Stack as stack
  */
 abstract class Library extends lisa.prooflib.WithTheorems with lisa.prooflib.ProofsHelpers {
 
-  val theory: RunningTheory
   given library: this.type = this
+
+  final val theory: RunningTheory = new RunningTheory
+
   given RunningTheory = theory
+
+  given om: OutputManager = new OutputManager {
+    def finishOutput(exception: Exception): Nothing = {
+      log(exception)
+      println(om.stringWriter.toString)
+      sys.exit
+    }
+
+    val stringWriter: java.io.StringWriter = new java.io.StringWriter()
+  }
 
   export lisa.kernel.proof.SCProof
 

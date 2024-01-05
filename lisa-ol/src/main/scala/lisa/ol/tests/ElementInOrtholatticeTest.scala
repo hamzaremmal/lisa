@@ -2,9 +2,8 @@ package lisa.ol
 package tests
 
 import lisa.SetTheoryLibrary.∈
-import lisa.ol.OrthologicWithAxiomsLibrary.{n, not, u}
 
-object ElementInOrtholatticeTest extends OrthologicWithAxiomsMain:
+object ElementInOrtholatticeTest extends OrthologicWithAxiomsMain with OrthologicWithAxiomsLibrary:
 
   val elemInOrtho1 = Theorem(ortholattice(U, <=, n, u, not, 0, 1) |- 0 ∈ U):
     have(thesis) by ElementInOrtholattice.withParameters(0)

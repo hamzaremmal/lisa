@@ -1,4 +1,4 @@
-package lisa.maths
+/*package lisa.maths
 
 import lisa.maths.settheory.SetTheory.*
 import lisa.prooflib.ProofTacticLib.ProofTactic
@@ -125,3 +125,4 @@ object OrthologicWithAxiomsST0 extends lisa.Main:
 
 end OrthologicWithAxiomsST0
 
+*/

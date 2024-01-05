@@ -1,15 +1,12 @@
 package lisa
 
 import lisa.fol.FOL.{_, given}
-import lisa.kernel.proof.RunningTheory
 import lisa.prooflib.Library
 
 /**
  * Specific implementation of [[utilities.Library]] for Set Theory, with a RunningTheory that is supposed to be used by the standard library.
  */
 object SetTheoryLibrary extends lisa.prooflib.Library {
-
-  val theory = new RunningTheory()
 
   // Predicates
   /**

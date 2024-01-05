@@ -4,12 +4,8 @@ import lisa.automation.kernel.CommonTactics.Definition
 import lisa.fol.FOL.*
 import lisa.maths.settheory.SetTheory.*
 import lisa.fol.FOLHelpers.variable
-import lisa.kernel.proof.RunningTheory
-import lisa.prooflib.OutputManager
 
-object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
-
-  override val theory = new RunningTheory
+trait OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
 
   predicates.foreach(s => addSymbol(s))
   functions.foreach(s => addSymbol(s))
@@ -18,15 +14,6 @@ object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
   addSymbol(cartesianProduct)
   addSymbol(functionFrom)
   addSymbol(relationBetween)
-
-  private given om: OutputManager = new OutputManager {
-    def finishOutput(exception: Exception): Nothing = {
-      log(exception)
-      println(om.stringWriter.toString)
-      sys.exit
-    }
-    val stringWriter: java.io.StringWriter = new java.io.StringWriter()
-  }
 
   // ==============================================================================================
   // ======================================== SYMBOLS =============================================
@@ -257,7 +244,7 @@ object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
   // ==============================================================================================
 
   /** STATUS: DONE */
-  val appInCodomain = Lemma((functionFrom(f, S, T), (x ∈ S)) |- (app(f, x) ∈ T)):
+  val appInCodomain = Lemma((functionFrom(f, S, T), x ∈ S) |- (app(f, x) ∈ T)):
     /*assume(functionFrom(f, S, T), (x ∈ S))
 
     val functionalOverU = have(functionalOver(f, S)) subproof :
