@@ -7,7 +7,7 @@ import lisa.fol.FOLHelpers.variable
 import lisa.kernel.proof.RunningTheory
 import lisa.prooflib.OutputManager
 
-object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library {
+object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library :
 
   override val theory = new RunningTheory
 
@@ -400,4 +400,234 @@ object OrthologicWithAxiomsLibrary extends lisa.prooflib.Library {
       have(thesis) by Cut.withParameters(1 ∈ U)(oneInOrtholattice, step45)
   end negationOfOneIsZero2
 
-}
+  // ==============================================================================================
+  // ============================================ RULES ===========================================
+  // ==============================================================================================
+
+  /** STATUS: DONE */
+  val hyp = Theorem(isO +: inU(x) |- x <= x):
+    val impl = have(isO |- (x ∈ U ==> x <= x)) subproof :
+      assume(isO)
+      have(∀(x, x ∈ U ==> x <= x)) by Tautology.from(ortholattice.definition, p1.definition)
+      thenHave(thesis) by InstantiateForall(x)
+    end impl
+    have(thesis) by Tautology.from(impl)
+  end hyp
+
+  /** STATUS: DONE */
+  val cut = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= z) |- (x <= z)):
+    have(thesis) by Tautology.from(lemmaForP2)
+  end cut
+
+  /** STATUS: DONE */
+  val weaken1 = Theorem(isO +: inU(x, y) :+ (x <= 0) |- x <= y):
+    val step1 = have(isO +: inU(y) |- 0 <= y) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> 0 <= x)) by Tautology.from(ortholattice.definition, p3a.definition)
+      thenHave((x ∈ U) ==> 0 <= x) by InstantiateForall(x)
+      have(thesis) by Tautology.from(lastStep of (x := y))
+    val step2 = have(isO +: inU(x, y, 0) :+ (x <= 0) :+ (0 <= y) |- (x <= y)) subproof :
+      have(thesis) by Restate.from(cut of(y := 0, z := y))
+    val step3 = have(isO +: inU(x, y) :+ (x <= 0) :+ (0 <= y) |- x <= y) subproof :
+      have(thesis) by Cut.withParameters(0 ∈ U)(zeroInOrtholattice, step2)
+    have(thesis) by Cut.withParameters(0 <= y)(step1, step3)
+  end weaken1
+
+  /** STATUS: DONE */
+  val weaken2 = Theorem(isO +: inU(x, y) :+ (1 <= y) |- x <= y):
+    val step1 = have(isO +: inU(x) |- x <= 1) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> x <= 1)) by Tautology.from(ortholattice.definition, p3b.definition)
+      thenHave((x ∈ U) ==> x <= 1) by InstantiateForall(x)
+      have(thesis) by Tautology.from(lastStep)
+    val step2 = have(isO +: inU(x, y, 1) :+ (x <= 1) :+ (1 <= y) |- (x <= y)) subproof :
+      have(thesis) by Restate.from(cut of(y := 1, z := y))
+    val step3 = have(isO +: inU(x, y) :+ (x <= 1) :+ (1 <= y) |- x <= y) subproof :
+      have(thesis) by Cut.withParameters(1 ∈ U)(oneInOrtholattice, step2)
+    have(thesis) by Cut.withParameters(x <= 1)(step1, step3)
+  end weaken2
+
+  // x^L x^L |- x^L
+  /** STATUS: DONE */
+  val contraction1 = Theorem(isO +: inU(x) :+ (x <= !x) |- x <= 0):
+    assume(isO)
+    val step1 = have((x ∈ U, x <= !x) |- x <= (x n !x)) subproof :
+      have((x ∈ U, !x ∈ U, x <= x, x <= !x) |- x <= (x n !x)) by Restate.from(lemmaForP6A of(x := x, y := x, z := !x))
+      have((x ∈ U, !x ∈ U, x <= !x) |- x <= (x n !x)) by Cut.withParameters(x <= x)(lemmaForP1, lastStep)
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
+    val step2 = have((x ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) subproof :
+      have((x ∈ U, (x n !x) ∈ U, 0 ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Restate.from(cut of(x := x, y := (x n !x), z := 0))
+      have((x ∈ U, (x n !x) ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Cut.withParameters(0 ∈ U)(zeroInOrtholattice, lastStep)
+      have((x ∈ U, !x ∈ U, x <= (x n !x), (x n !x) <= 0) |- x <= 0) by Tautology.from(meetIsClosed of (y := !x), lastStep) //Cut.withParameters((x n !x) ∈ U)(joinIsClosed of (y := !x), lastStep)
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
+    have(thesis) subproof :
+      have((x ∈ U, x <= !x, (x n !x) <= 0) |- x <= 0) by Cut.withParameters(x <= (x n !x))(step1, step2)
+      have(thesis) by Cut.withParameters((x n !x) <= 0)(lemmaForP9A, lastStep)
+  end contraction1
+
+  // x^R x^R |- x^R
+  /** STATUS: DONE */
+  val contraction2 = Theorem(isO +: inU(x) :+ (!x <= x) |- 1 <= x):
+    assume(isO)
+    val step1 = have((x ∈ U, !x <= x) |- (x u !x) <= x) subproof :
+      have((x ∈ U, !x ∈ U, x <= x, !x <= x) |- (x u !x) <= x) by Restate.from(lemmaForP6B of(x := x, y := !x, z := x))
+      have((x ∈ U, !x ∈ U, !x <= x) |- (x u !x) <= x) by Cut.withParameters(x <= x)(lemmaForP1, lastStep)
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
+    val step2 = have((x ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) subproof :
+      have((x ∈ U, (x u !x) ∈ U, 1 ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Restate.from(cut of(x := 1, y := (x u !x), z := x))
+      have((x ∈ U, (x u !x) ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Cut.withParameters(1 ∈ U)(oneInOrtholattice, lastStep)
+      have((x ∈ U, !x ∈ U, 1 <= (x u !x), (x u !x) <= x) |- 1 <= x) by Tautology.from(joinIsClosed of (y := !x), lastStep) //Cut.withParameters((x u !x) ∈ U)(meetIsClosed of (y := !x), lastStep)
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, lastStep)
+    have(thesis) subproof :
+      have((x ∈ U, !x <= x, 1 <= (x u !x)) |- 1 <= x) by Cut.withParameters((x u !x) <= x)(step1, step2)
+      have(thesis) by Cut.withParameters(1 <= (x u !x))(lemmaForP9B, lastStep)
+  end contraction2
+
+  /** STATUS: DONE */
+  val leftAnd1 = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- (x n y) <= z):
+    val step1 = have(isO +: inU(x, y, z) |- (x n y) <= x) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> ∀(y, (y ∈ U) ==> (x n y) <= x))) by Tautology.from(ortholattice.definition, p4a.definition)
+      val step1 = thenHave((x ∈ U) ==> ∀(y, (y ∈ U) ==> (x n y) <= x)) by InstantiateForall(x)
+      assume(x ∈ U)
+      have(∀(y, (y ∈ U) ==> (x n y) <= x)) by Tautology.from(step1)
+      val step2 = thenHave((y ∈ U) ==> (x n y) <= x) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(thesis) by Tautology.from(step2)
+    val step2 = have(isO +: inU(x, (x n y), z) :+ ((x n y) <= x) :+ (x <= z) |- (x n y) <= z) subproof :
+      have(thesis) by Restate.from(cut of(x := (x n y), y := x))
+    val step3 = have(isO +: inU(x, y, z) :+ ((x n y) <= x) :+ (x <= z) |- (x n y) <= z) subproof :
+      have(thesis) by Tautology.from(meetIsClosed, step2) // Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
+    have(thesis) by Cut.withParameters((x n y) <= x)(step1, step3)
+  end leftAnd1
+
+  /** STATUS: DONE */
+  val leftAnd2 = Theorem(isO +: inU(x, y, z) :+ (y <= z) |- (x n y) <= z):
+    val step1 = have(isO +: inU(x, y, z) |- (x n y) <= y) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> ∀(y, (y ∈ U) ==> (x n y) <= y))) by Tautology.from(ortholattice.definition, p5a.definition)
+      val step1 = thenHave((x ∈ U) ==> ∀(y, (y ∈ U) ==> (x n y) <= y)) by InstantiateForall(x)
+      assume(x ∈ U)
+      have(∀(y, (y ∈ U) ==> (x n y) <= y)) by Tautology.from(step1)
+      val step2 = thenHave((y ∈ U) ==> (x n y) <= y) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(thesis) by Tautology.from(step2)
+    val step2 = have(isO +: inU((x n y), y, z) :+ ((x n y) <= y) :+ (y <= z) |- (x n y) <= z) subproof :
+      have(thesis) by Restate.from(cut of (x := (x n y)))
+    val step3 = have(isO +: inU(x, y, z) :+ ((x n y) <= y) :+ (y <= z) |- (x n y) <= z) subproof :
+      have(thesis) by Tautology.from(meetIsClosed, step2) // Cut.withParameters((x n y) ∈ U)(joinIsClosed, step2)
+    have(thesis) by Cut.withParameters((x n y) <= y)(step1, step3)
+  end leftAnd2
+
+  /** STATUS: DONE */
+  val leftOr = Theorem(isO +: inU(x, y, z) :+ (x <= z) :+ (y <= z) |- (x u y) <= z):
+    val impl = have(isO +: inU(x, y, z) |- (x <= z) /\ (y <= z) ==> (x u y) <= z) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> ∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z))))) by Tautology.from(ortholattice.definition, p6b.definition)
+      val step1 = thenHave((x ∈ U) ==> ∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z)))) by InstantiateForall(x)
+      assume(x ∈ U)
+      have(∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z)))) by Tautology.from(step1)
+      val step2 = thenHave((y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z))) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(∀(z, (z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z))) by Tautology.from(step2)
+      val step3 = thenHave((z ∈ U) ==> ((x <= z) /\ (y <= z) ==> (x u y) <= z)) by InstantiateForall(z)
+      have(thesis) by Tautology.from(step3)
+    end impl
+    have(thesis) by Tautology.from(impl)
+  end leftOr
+
+  /** STATUS: DONE */
+  val rightAnd = Theorem(isO +: inU(x, y, z) :+ (x <= y) :+ (x <= z) |- x <= (y n z)):
+    val impl = have(isO +: inU(x, y, z) |- (x <= y) /\ (x <= z) ==> x <= (y n z)) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> ∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z)))))) by Tautology.from(ortholattice.definition, p6a.definition)
+      val step1 = thenHave((x ∈ U) ==> ∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z))))) by InstantiateForall(x)
+      assume(x ∈ U)
+      have(∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z))))) by Tautology.from(step1)
+      val step2 = thenHave((y ∈ U) ==> ∀(z, (z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z)))) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(∀(z, (z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z)))) by Tautology.from(step2)
+      val step3 = thenHave((z ∈ U) ==> ((x <= y) /\ (x <= z) ==> x <= (y n z))) by InstantiateForall(z)
+      have(thesis) by Tautology.from(step3)
+    end impl
+    have(thesis) by Tautology.from(impl)
+  end rightAnd
+
+  /** STATUS: DONE */
+  val rightOr1 = Theorem(isO +: inU(x, y, z) :+ (x <= y) |- x <= (y u z)):
+    val step1 = have(isO +: inU(y, z) |- y <= (y u z)) subproof :
+      assume(isO)
+      have(∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> y <= (y u z)))) by Tautology.from(ortholattice.definition, p4b.definition of(x := y, y := z))
+      val step1 = thenHave((y ∈ U) ==> ∀(z, (z ∈ U) ==> y <= (y u z))) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(∀(z, (z ∈ U) ==> y <= (y u z))) by Tautology.from(step1)
+      val step2 = thenHave((z ∈ U) ==> y <= (y u z)) by InstantiateForall(z)
+      have(thesis) by Restate.from(step2)
+    val step2 = have(isO +: inU(x, y, z, (y u z)) :+ (x <= y) :+ (y <= (y u z)) |- x <= (y u z)) subproof :
+      have(isO +: inU(x, y, (y u z)) :+ (x <= y) :+ (y <= (y u z)) |- x <= (y u z)) by Restate.from(cut of (z := (y u z)))
+      thenHave(thesis) by Weakening
+    val step3 = have(isO +: inU(x, y, z) :+ (x <= y) :+ (y <= (y u z)) |- x <= (y u z)) subproof :
+      have(thesis) by Tautology.from(joinIsClosed of(x := y, y := z), step2) // Cut.withParameters((y u z) ∈ U)(meetIsClosed of (x := y, y := z), step2)
+    have(thesis) by Cut.withParameters(y <= (y u z))(step1, step3)
+  end rightOr1
+
+  /** STATUS: DONE */
+  val rightOr2 = Theorem(isO +: inU(x, y, z) :+ (x <= z) |- x <= (y u z)):
+    val step1 = have(isO +: inU(y, z) |- z <= (y u z)) subproof :
+      assume(isO)
+      have(∀(y, (y ∈ U) ==> ∀(z, (z ∈ U) ==> z <= (y u z)))) by Tautology.from(ortholattice.definition, p5b.definition of(x := y, y := z))
+      val step1 = thenHave((y ∈ U) ==> ∀(z, (z ∈ U) ==> z <= (y u z))) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(∀(z, (z ∈ U) ==> z <= (y u z))) by Tautology.from(step1)
+      val step2 = thenHave((z ∈ U) ==> z <= (y u z)) by InstantiateForall(z)
+      have(thesis) by Restate.from(step2)
+    val step2 = have(isO +: inU(x, y, z, (y u z)) :+ (x <= z) :+ (z <= (y u z)) |- x <= (y u z)) subproof :
+      have(isO +: inU(x, z, (y u z)) :+ (x <= z) :+ (z <= (y u z)) |- x <= (y u z)) by Restate.from(cut of(y := z, z := (y u z)))
+      thenHave(thesis) by Weakening
+    val step3 = have(isO +: inU(x, y, z) :+ (x <= z) :+ (z <= (y u z)) |- x <= (y u z)) subproof :
+      have(thesis) by Tautology.from(joinIsClosed of(x := y, y := z), step2) // Cut.withParameters((y u z) ∈ U)(meetIsClosed of(x := y, y := z), step2)
+    have(thesis) by Cut.withParameters(z <= (y u z))(step1, step3)
+  end rightOr2
+
+  /** STATUS: DONE */
+  val commutRL = Theorem(isO +: inU(x, y) :+ (x <= y) |- !y <= !x):
+    have(thesis) by Tautology.from(lemmaForP8)
+  end commutRL
+
+  /** STATUS: DONE */
+  val commutLL = Theorem(isO +: inU(x, y) :+ (x <= !y) |- y <= !x):
+    val step1 = have(isO +: inU(y) |- y <= !(!y)) subproof :
+      assume(isO)
+      have(∀(y, (y ∈ U) ==> y <= !(!y))) by Tautology.from(ortholattice.definition, p7a.definition of (x := y))
+      val step1 = thenHave((y ∈ U) ==> y <= !(!y)) by InstantiateForall(y)
+      assume(y ∈ U)
+      have(thesis) by Tautology.from(step1)
+    val step2 = have(isO +: inU(x, y) :+ (y <= !(!y)) :+ (!(!y) <= !x) |- y <= !x) subproof :
+      val step1 = have(isO +: inU(!x, y) :+ (y <= !(!y)) :+ (!(!y) <= !x) |- y <= !x) by Cut.withParameters(!(!y) ∈ U)(doubleNegationIsClosed of (x := y), cut of(x := y, y := !(!y), z := !x))
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, step1)
+    val step3 = have(isO +: inU(x, y) :+ (!(!y) <= !x) |- y <= !x) subproof :
+      have(thesis) by Cut.withParameters(y <= !(!y))(step1, step2)
+    val step4 = have(isO +: inU(x, y) :+ (x <= !y) |- !(!y) <= !x) subproof :
+      have(thesis) by Cut.withParameters(!y ∈ U)(negationIsClosed of (x := y), commutRL of (y := !y))
+    have(thesis) by Cut.withParameters(!(!y) <= !x)(step4, step3)
+  end commutLL
+
+  /** STATUS: DONE */
+  val commutRR = Theorem(isO +: inU(x, y) :+ (!x <= y) |- !y <= x):
+    val step1 = have(isO +: inU(x) |- !(!x) <= x) subproof :
+      assume(isO)
+      have(∀(x, (x ∈ U) ==> !(!x) <= x)) by Tautology.from(ortholattice.definition, p7b.definition)
+      val step1 = thenHave((x ∈ U) ==> !(!x) <= x) by InstantiateForall(x)
+      assume(x ∈ U)
+      have(thesis) by Tautology.from(step1)
+    val step2 = have(isO +: inU(x, y) :+ (!y <= !(!x)) :+ (!(!x) <= x) |- !y <= x) subproof :
+      val step1 = have(isO +: inU(x, !y) :+ (!y <= !(!x)) :+ (!(!x) <= x) |- !y <= x) by Cut.withParameters(!(!x) ∈ U)(doubleNegationIsClosed, cut of(x := !y, y := !(!x), z := x))
+      have(thesis) by Cut.withParameters(!y ∈ U)(negationIsClosed of (x := y), step1)
+    val step3 = have(isO +: inU(x, y) :+ (!y <= !(!x)) |- !y <= x) subproof :
+      have(thesis) by Cut.withParameters(!(!x) <= x)(step1, step2)
+    val step4 = have(isO +: inU(x, y) :+ (!x <= y) |- !y <= !(!x)) subproof :
+      have(thesis) by Cut.withParameters(!x ∈ U)(negationIsClosed, commutRL of (x := !x))
+    have(thesis) by Cut.withParameters(!y <= !(!x))(step4, step3)
+  end commutRR
+
+end OrthologicWithAxiomsLibrary
