@@ -1,9 +1,8 @@
-package lisa.ol.tests
+package lisa.ol
+package tests
 
 import lisa.SetTheoryLibrary.∈
-import lisa.ol.OrthologicWithAxiomsLibrary.{<=, U, n, not, ortholattice, u, x, y}
-import lisa.ol.OrthologicWithAxiomsMain
-import lisa.ol.automation.ElementInOrtholattice
+import lisa.ol.OrthologicWithAxiomsLibrary.{n, not, u}
 
 object ElementInOrtholatticeTest extends OrthologicWithAxiomsMain:
 
